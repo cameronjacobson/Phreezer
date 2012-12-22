@@ -86,7 +86,7 @@ class Phreezer
 	{
 		// Use Phreezer\IdGenerator\UUID by default.
 		if ($idGenerator === NULL) {
-			$idGenerator = new Phreezer\IdGenerator_UUID;
+			$idGenerator = new UUID;
 		}
 
 		// Use Phreezer\HashGenerator\NonRecursiveSHA1 by default.
