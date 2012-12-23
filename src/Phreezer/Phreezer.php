@@ -181,7 +181,7 @@ class Phreezer
 		// Bail out if one of the required classes cannot be found.
 		foreach ($frozenObject['objects'] as $object) {
 			if (!class_exists($object['className'], $this->useAutoload)) {
-				throw new RuntimeException(
+				throw new \RuntimeException(
 					sprintf(
 						'Class "%s" could not be found.', $object['className']
 					)

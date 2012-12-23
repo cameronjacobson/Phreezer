@@ -100,7 +100,7 @@ class LazyProxy
 	public function __get($name)
 	{
 		$object = $this->replaceProxy(2);
-		$attribute = new ReflectionProperty($object, $name);
+		$attribute = new \ReflectionProperty($object, $name);
 		$attribute->setAccessible(TRUE);
 
 		return $attribute->getValue($object);
@@ -116,7 +116,7 @@ class LazyProxy
 	public function __set($name, $value)
 	{
 		$object = $this->replaceProxy(2);
-		$attribute = new ReflectionProperty($object, $name);
+		$attribute = new \ReflectionProperty($object, $name);
 		$attribute->setAccessible(TRUE);
 
 		$attribute->setValue($object, $value);
@@ -133,7 +133,7 @@ class LazyProxy
 	public function __call($name, array $arguments)
 	{
 		$object = $this->replaceProxy(3);
-		$reflector = new ReflectionMethod($object, $name);
+		$reflector = new \ReflectionMethod($object, $name);
 
 		return $reflector->invokeArgs($object, $arguments);
 	}
@@ -159,7 +159,7 @@ class LazyProxy
 		$trace = debug_backtrace();
 
 		if (isset($trace[$offset]['object'])) {
-			$reflector = new ReflectionObject($trace[$offset]['object']);
+			$reflector = new \ReflectionObject($trace[$offset]['object']);
 
 			foreach ($reflector->getProperties() as $attribute) {
 				$attribute->setAccessible(TRUE);
