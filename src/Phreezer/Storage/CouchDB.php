@@ -133,6 +133,11 @@ class CouchDB extends Storage
 					'state' => $object['state']
 				);
 
+				if(isset($data['state']['_delete'])){
+					$data['_deleted'] = true;
+					unset($obj['state']['_delete']);
+				}
+
 				if (!$data['_rev']) {
 					unset($data['_rev']);
 				}
@@ -150,7 +155,7 @@ class CouchDB extends Storage
 
 			if (strpos($response['headers'], 'HTTP/1.1 201 Created') !== 0) {
 				// @codeCoverageIgnoreStart
-				throw new RuntimeException('Could not save objects.');
+				throw new \RuntimeException('Could not save objects.');
 				// @codeCoverageIgnoreEnd
 			}
 
@@ -159,7 +164,7 @@ class CouchDB extends Storage
 			foreach ($data as $state) {
 				if (isset($state['error'])) {
 					// @codeCoverageIgnoreStart
-					throw new RuntimeException(
+					throw new \RuntimeException(
 						sprintf(
 							'Could not save object "%s": %s - %s',
 							$state['id'],
@@ -194,7 +199,7 @@ class CouchDB extends Storage
 			);
 
 			if (strpos($response['headers'], 'HTTP/1.1 200 OK') !== 0) {
-				throw new RuntimeException(
+				throw new \RuntimeException(
 					sprintf('Object with id "%s" could not be fetched.', $id)
 				);
 			}
@@ -232,7 +237,7 @@ class CouchDB extends Storage
 		$socket = @fsockopen($this->host, $this->port, $errno, $errstr);
 
 		if (!$socket) {
-			throw new RuntimeException($errno . ': ' . $errstr);
+			throw new \RuntimeException($errno . ': ' . $errstr);
 		}
 
 		$request = sprintf(

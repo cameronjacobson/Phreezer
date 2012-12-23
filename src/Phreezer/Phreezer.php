@@ -199,13 +199,13 @@ class Phreezer
 		if (!isset($objects[$root])) {
 			$className = $frozenObject['objects'][$root]['className'];
 			$state = $frozenObject['objects'][$root]['state'];
-			$reflector = new ReflectionClass($className);
+			$reflector = new \ReflectionClass($className);
 			$objects[$root] = $reflector->newInstanceWithoutConstructor();
 
 			// Handle aggregated objects.
 			$this->thawArray($state, $frozenObject, $objects);
 
-			$reflector = new ReflectionObject($objects[$root]);
+			$reflector = new \ReflectionObject($objects[$root]);
 
 			foreach ($state as $name => $value) {
 				if (strpos($name, '__phreezer') !== 0) {
