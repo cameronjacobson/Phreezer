@@ -2,7 +2,6 @@
 
 require_once(dirname(__DIR__).'/vendor/autoload.php');
 
-use Phreezer\Phreezer;
 use Phreezer\Storage\CouchDB;
 
 $lazyProxy = false;
@@ -11,17 +10,8 @@ $useAutoload = true;
 
 $start = microtime(true);
 
-$freezer = new Phreezer([
-	'blacklist' => $blacklist,
-	'autoload'  => $useAutoload
-]);
-
 $couch = new CouchDB([
-	'database'  => 'mydb',
-	'host'      => 'localhost',
-	'port'      => 5984,
-	'lazyproxy' => $lazyProxy,
-	'freezer'   => $freezer
+	'database'  => 'mydb'
 ]);
 
 $ids = [];
@@ -30,18 +20,22 @@ for($x=0; $x<10; $x++){
 	$obj->a = 1+$x;
 	$obj->b = 2+$x;
 	$obj->c = 3+$x;
+	echo 'STORING RECORD: ';
 	$ids[] = $id = $couch->store($obj);
-	echo 'STORING: '.$id.PHP_EOL;
+	echo $id.PHP_EOL;
 }
 echo PHP_EOL;
 
 foreach($ids as $id){
 	echo 'FETCHING: '.$id.PHP_EOL;
 	$obj = $couch->fetch($id);
+
 	echo 'UPDATING: '.$obj->a.' TO "'.$obj->blah().'"'.PHP_EOL;
 	$obj->a = $obj->blah();
+
 	echo 'STORING UPDATED VERSION OF: '.$id.PHP_EOL;
 	$couch->store($obj);
+
 	echo PHP_EOL;
 }
 echo PHP_EOL;
@@ -50,17 +44,23 @@ echo PHP_EOL;
 foreach($ids as $id){
 	echo 'FETCHING: '.$id.PHP_EOL;
 	$obj = $couch->fetch($id);
+
 	echo 'STORING SAME VERSION OF: '.$id.PHP_EOL;
 	$couch->store($obj);
+
 	echo PHP_EOL;
 }
 echo PHP_EOL;
 
 foreach($ids as $id){
+	echo 'FETCHING: '.$id.PHP_EOL;
 	$obj = $couch->fetch($id);
+
 	echo 'DELETING: '.$id.PHP_EOL;
 	$obj->_delete = true;
 	$couch->store($obj);
+
+	echo PHP_EOL;
 }
 echo PHP_EOL;
 
