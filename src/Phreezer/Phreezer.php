@@ -58,7 +58,7 @@ class Phreezer
 	/**
 	 * @var array
 	 */
-	protected $blacklist = array();
+	protected $blacklist = [];
 
 	/**
 	 * Constructor.
@@ -67,10 +67,13 @@ class Phreezer
 	 * @param  boolean                $useAutoload
 	 * @throws InvalidArgumentException
 	 */
-	public function __construct(array $blacklist = array(), $useAutoload = TRUE)
+	public function __construct(array $options = [])
 	{
-		$this->setBlacklist($blacklist);
-		$this->setUseAutoload($useAutoload);
+		$options['blacklist'] = @is_array($options['blacklist']) ? $options['blacklist'] : [];
+		$options['autoload'] = @is_bool($options['autoload']) ? $options['autoload'] : TRUE;
+
+		$this->setBlacklist($options['blacklist']);
+		$this->setUseAutoload($options['autoload']);
 	}
 
 	public function freeze($object, $checkHash = true)
@@ -80,7 +83,7 @@ class Phreezer
 			throw Util::getInvalidArgumentException(1, 'object');
 		}
 
-		$objects = array();
+		$objects = [];
 		$uuid = $this->freezeObject($object, $objects);
 
 		foreach($objects as $uuid=>&$object){
@@ -95,7 +98,7 @@ class Phreezer
 				unset($objects[$uuid]);
 			}
 		}
-		return array('root' => $uuid, 'objects' => $objects);
+		return ['root' => $uuid, 'objects' => $objects];
 	}
 
 	public function freezeObject(&$object, &$objects){
@@ -113,10 +116,10 @@ class Phreezer
 		}
 
 		if (!isset($objects[$uuid])) {
-			$objects[$uuid] = array(
+			$objects[$uuid] = [
 				'className' => get_class($object),
-				'state'     => array()
-			);
+				'state'     => []
+			];
 
 			// Iterate over the attributes of the object.
 			foreach (Util::readAttributes($object) as $k => $v) {
@@ -164,7 +167,7 @@ class Phreezer
 		}
 	}
 
-	public function thaw(array $frozenObject, $root = NULL, array &$objects = array())
+	public function thaw(array $frozenObject, $root = NULL, array &$objects = [])
 	{
 		// Bail out if one of the required classes cannot be found.
 		foreach ($frozenObject['objects'] as $object) {
@@ -300,7 +303,7 @@ class Phreezer
 		$this->useAutoload = $flag;
 	}
 
-	protected function getHash(Array $object)
+	protected function getHash(array $object)
 	{
 		if (isset($object['state']['__phreezer_hash'])) {
 			unset($object['state']['__phreezer_hash']);

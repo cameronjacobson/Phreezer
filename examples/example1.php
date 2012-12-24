@@ -4,17 +4,22 @@ require_once(dirname(__DIR__).'/vendor/autoload.php');
 
 use Phreezer\Phreezer;
 use Phreezer\Storage\CouchDB;
-use Phreezer\Cache;
 
 $lazyProxy = false;
 $blacklist = array();
 $useAutoload = true;
 
-$freezer = new Phreezer(
-	$blacklist,
-	$useAutoload
-);
+$freezer = new Phreezer([
+	'blacklist' => $blacklist,
+	'autoload'  => $useAutoload
+]);
 
-$a = new CouchDB('mydb', $freezer, new Cache(), $lazyProxy, 'localhost', 5984);
+$a = new CouchDB([
+	'database'  => 'mydb',
+	'host'      => 'localhost',
+	'port'      => 5984,
+	'lazyproxy' => $lazyProxy,
+	'freezer'   => $freezer
+]);
 
 var_dump($a);

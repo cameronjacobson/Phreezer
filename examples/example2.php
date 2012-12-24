@@ -4,21 +4,28 @@ require_once(dirname(__DIR__).'/vendor/autoload.php');
 
 use Phreezer\Phreezer;
 use Phreezer\Storage\CouchDB;
-use Phreezer\Cache;
 
 $lazyProxy = false;
 $blacklist = array();
 $useAutoload = true;
 
-$freezer = new Phreezer(
-	$blacklist,
-	$useAutoload
-);
+$start = microtime(true);
 
-$couch = new CouchDB('mydb', $freezer, new Cache(), $lazyProxy, 'localhost', 5984);
+$freezer = new Phreezer([
+	'blacklist' => $blacklist,
+	'autoload'  => $useAutoload
+]);
+
+$couch = new CouchDB([
+	'database'  => 'mydb',
+	'host'      => 'localhost',
+	'port'      => 5984,
+	'lazyproxy' => $lazyProxy,
+	'freezer'   => $freezer
+]);
 
 $ids = [];
-for($x=0;$x<1;$x++){
+for($x=0; $x<10; $x++){
 	$obj = new blah();
 	$obj->a = 1+$x;
 	$obj->b = 2+$x;
@@ -56,6 +63,8 @@ foreach($ids as $id){
 	$couch->store($obj);
 }
 echo PHP_EOL;
+
+echo 'COMPLETED IN: '.(microtime(true)-$start).' SECONDS'.PHP_EOL;
 
 class blah
 {

@@ -48,7 +48,6 @@ namespace Phreezer\Storage;
 use Phreezer\Phreezer;
 use Phreezer\Storage;
 use Phreezer\Util;
-use Phreezer\Cache;
 
 class CouchDB extends Storage
 {
@@ -70,7 +69,7 @@ class CouchDB extends Storage
 	/**
 	 * @var array
 	 */
-	protected $revisions = array();
+	protected $revisions = [];
 
 	/**
 	 * @var boolean
@@ -82,31 +81,34 @@ class CouchDB extends Storage
 	 *
 	 * @param  string            $database      Name of the database to be used
 	 * @param  Phreezer          $freezer       Phreezer instance to be used
-	 * @param  Phreezer\Cache    $cache         Phreezer\Cache instance to be used
 	 * @param  boolean           $useLazyLoad   Flag that controls whether objects are fetched using lazy load or not
 	 * @param  string            $host          Hostname of the CouchDB instance to be used
 	 * @param  int               $port          Port of the CouchDB instance to be used
 	 * @throws InvalidArgumentException
 	 */
-	public function __construct($database, Phreezer $freezer = NULL, Cache $cache = NULL, $useLazyLoad = FALSE, $host = 'localhost', $port = 5984)
+	public function __construct(array $options = [])
 	{
-		parent::__construct($freezer, $cache, $useLazyLoad);
+		$options['host'] = @$options['host'] ?: 'localhost';
+		$options['port'] = @$options['port'] ?: 5984;
+		$options['lazyproxy'] = @$options['lazyproxy'] ?: FALSE;
+		$options['freezer'] = @$options['freezer'] ?: null;
+		parent::__construct(@$options['lazyproxy'], @$options['freezer']);
 
-		if (!is_string($database)) {
+		if (!is_string($options['database'])) {
 			throw Util::getInvalidArgumentException(1, 'string');
 		}
 
-		if (!is_string($host)) {
+		if (!is_string($options['host'])) {
 			throw Util::getInvalidArgumentException(4, 'string');
 		}
 
-		if (!is_int($port)) {
+		if (!is_int($options['port'])) {
 			throw Util::getInvalidArgumentException(5, 'integer');
 		}
 
-		$this->database = $database;
-		$this->host = $host;
-		$this->port = $port;
+		$this->database = $options['database'];
+		$this->host = $options['host'];
+		$this->port = $options['port'];
 	}
 
 	/**
@@ -116,7 +118,7 @@ class CouchDB extends Storage
 	 */
 	protected function doStore(array $frozenObject)
 	{
-		$payload = array('docs' => array());
+		$payload = ['docs' => []];
 
 		foreach ($frozenObject['objects'] as $id => $object) {
 			$revision = NULL;
@@ -125,12 +127,12 @@ class CouchDB extends Storage
 				$revision = $this->revisions[$id];
 			}
 
-			$data = array(
+			$data = [
 				'_id'   => $id,
 				'_rev'  => $revision,
 				'class' => $object['className'],
 				'state' => $object['state']
-			);
+			];
 
 			if(isset($data['state']['_delete'])){
 				$data['_deleted'] = true;
@@ -187,7 +189,7 @@ class CouchDB extends Storage
 	 * @throws InvalidArgumentException
 	 * @throws RuntimeException
 	 */
-	protected function doFetch($id, array &$objects = array())
+	protected function doFetch($id, array &$objects = [])
 	{
 		$isRoot = empty($objects);
 
@@ -205,10 +207,10 @@ class CouchDB extends Storage
 			$object = json_decode($response['body'], TRUE);
 			$this->revisions[$object['_id']] = $object['_rev'];
 
-			$objects[$id] = array(
+			$objects[$id] = [
 				'className' => $object['class'],
 				'state' => $object['state']
-			);
+			];
 
 			if (!$this->lazyLoad) {
 				$this->fetchArray($object['state'], $objects);
@@ -216,7 +218,7 @@ class CouchDB extends Storage
 		}
 
 		if ($isRoot) {
-			return array('root' => $id, 'objects' => $objects);
+			return ['root' => $id, 'objects' => $objects];
 		}
 	}
 
@@ -268,7 +270,7 @@ class CouchDB extends Storage
 
 		list($headers, $body) = explode("\r\n\r\n", $buffer);
 
-		return array('headers' => $headers, 'body' => $body);
+		return ['headers' => $headers, 'body' => $body];
 	}
 
 	/**

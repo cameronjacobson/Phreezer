@@ -53,11 +53,6 @@ use Phreezer\Util;
 abstract class Storage
 {
 	/**
-	 * @var Phreezer\Cache
-	 */
-	protected $cache;
-
-	/**
 	 * @var Phreezer
 	 */
 	protected $freezer;
@@ -70,22 +65,16 @@ abstract class Storage
 	/**
 	 * Constructor.
 	 *
-	 * @param  Phreezer        $freezer      Phreezer instance to be used
-	 * @param  Phreezer\Cache  $cache        Phreezer\Cache instance to be used
 	 * @param  boolean         $useLazyLoad  Flag that controls whether objects are fetched using lazy load or not
+	 * @param  Phreezer        $freezer      Phreezer instance to be used
 	 */
-	public function __construct(Phreezer $freezer = NULL, Cache $cache = NULL, $useLazyLoad = FALSE)
+	public function __construct($useLazyLoad = FALSE, Phreezer $freezer = NULL)
 	{
 		if ($freezer === NULL) {
 			$freezer = new Phreezer;
 		}
 
-		if ($cache === NULL) {
-			$cache = new Cache;
-		}
-
 		$this->freezer = $freezer;
-		$this->cache = $cache;
 
 		$this->setUseLazyLoad($useLazyLoad);
 	}
