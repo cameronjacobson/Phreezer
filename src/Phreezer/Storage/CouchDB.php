@@ -119,31 +119,29 @@ class CouchDB extends Storage
 		$payload = array('docs' => array());
 
 		foreach ($frozenObject['objects'] as $id => $object) {
-			if ($object['isDirty'] !== FALSE) {
-				$revision = NULL;
+			$revision = NULL;
 
-				if (isset($this->revisions[$id])) {
-					$revision = $this->revisions[$id];
-				}
-
-				$data = array(
-					'_id'   => $id,
-					'_rev'  => $revision,
-					'class' => $object['className'],
-					'state' => $object['state']
-				);
-
-				if(isset($data['state']['_delete'])){
-					$data['_deleted'] = true;
-					unset($obj['state']['_delete']);
-				}
-
-				if (!$data['_rev']) {
-					unset($data['_rev']);
-				}
-
-				$payload['docs'][] = $data;
+			if (isset($this->revisions[$id])) {
+				$revision = $this->revisions[$id];
 			}
+
+			$data = array(
+				'_id'   => $id,
+				'_rev'  => $revision,
+				'class' => $object['className'],
+				'state' => $object['state']
+			);
+
+			if(isset($data['state']['_delete'])){
+				$data['_deleted'] = true;
+				unset($object['state']['_delete']);
+			}
+
+			if (!$data['_rev']) {
+				unset($data['_rev']);
+			}
+
+			$payload['docs'][] = $data;
 		}
 
 		if (!empty($payload['docs'])) {
@@ -209,7 +207,6 @@ class CouchDB extends Storage
 
 			$objects[$id] = array(
 				'className' => $object['class'],
-				'isDirty' => FALSE,
 				'state' => $object['state']
 			);
 

@@ -48,8 +48,8 @@ namespace Phreezer;
 use Phreezer\NonRecursiveSHA1;
 use Phreezer\IdGenerator\UUID;
 use Phreezer\Util;
+use Phreezer\Cache;
 use Phreezer\IdGenerator;
-use Phreezer\HashGenerator;
 
 class Phreezer
 {
@@ -69,45 +69,51 @@ class Phreezer
 	protected $idGenerator;
 
 	/**
-	 * @var Phreezer\HashGenerator
-	 */
-	protected $hashGenerator;
-
-	/**
 	 * Constructor.
 	 *
 	 * @param  Phreezer\IdGenerator   $idGenerator
-	 * @param  Phreezer\HashGenerator $hashGenerator
 	 * @param  array                  $blacklist
 	 * @param  boolean                $useAutoload
 	 * @throws InvalidArgumentException
 	 */
-	public function __construct(IdGenerator $idGenerator = NULL, HashGenerator $hashGenerator = NULL, array $blacklist = array(), $useAutoload = TRUE)
+	public function __construct(IdGenerator $idGenerator = NULL, array $blacklist = array(), $useAutoload = TRUE)
 	{
 		// Use Phreezer\IdGenerator\UUID by default.
 		if ($idGenerator === NULL) {
 			$idGenerator = new UUID;
 		}
 
-		// Use Phreezer\HashGenerator\NonRecursiveSHA1 by default.
-		if ($hashGenerator === NULL) {
-			$hashGenerator = new NonRecursiveSHA1(
-				$idGenerator
-			);
-		}
-
 		$this->setIdGenerator($idGenerator);
-		$this->setHashGenerator($hashGenerator);
 		$this->setBlacklist($blacklist);
 		$this->setUseAutoload($useAutoload);
 	}
 
-	public function freeze($object, array &$objects = array())
+	public function freeze($object, $checkHash = true)
 	{
 		// Bail out if a non-object was passed.
 		if (!is_object($object)) {
 			throw Util::getInvalidArgumentException(1, 'object');
 		}
+
+		$objects = array();
+		$uuid = $this->freezeObject($object, $objects);
+
+		foreach($objects as $uuid=>&$object){
+			Cache::delete($uuid);
+			$hash = $this->getHash($object);
+			if (empty($object['state']['__phreezer_hash']) 
+				  || ($object['state']['__phreezer_hash'] !== $hash)
+				  || empty($checkHash)) {
+				$object['state']['__phreezer_hash'] = $hash;
+			}
+			else{
+				unset($objects[$uuid]);
+			}
+		}
+		return array('root' => $uuid, 'objects' => $objects);
+	}
+
+	public function freezeObject(&$object, &$objects){
 
 		// The object has not been frozen before, generate a new UUID and
 		// store it in the "special" __phreezer_uuid attribute.
@@ -115,33 +121,32 @@ class Phreezer
 			$object->__phreezer_uuid = $this->idGenerator->getId();
 		}
 
-		$isDirty = $this->isDirty($object, TRUE);
 		$uuid = $object->__phreezer_uuid;
+
+		if(isset($objects[$uuid])){
+			return $uuid;
+		}
 
 		if (!isset($objects[$uuid])) {
 			$objects[$uuid] = array(
 				'className' => get_class($object),
-				'isDirty'   => $isDirty,
 				'state'     => array()
 			);
 
 			// Iterate over the attributes of the object.
 			foreach (Util::readAttributes($object) as $k => $v) {
 				if ($k !== '__phreezer_uuid') {
+
 					if (is_array($v)) {
 						$this->freezeArray($v, $objects);
 					}
-
-					else if (is_object($v) &&
-							 !in_array(get_class($v), $this->blacklist)) {
+					else if (is_object($v) && !in_array(get_class($v), $this->blacklist)) {
 						// Freeze the aggregated object.
-						$this->freeze($v, $objects);
+						$childuuid = $this->freezeObject($v, $objects);
 
 						// Replace $v with the aggregated object's UUID.
-						$v = '__phreezer_' .
-							 $v->__phreezer_uuid;
+						$v = '__phreezer_' . $childuuid;
 					}
-
 					else if (is_resource($v)) {
 						$v = NULL;
 					}
@@ -151,8 +156,7 @@ class Phreezer
 				}
 			}
 		}
-
-		return array('root' => $uuid, 'objects' => $objects);
+		return $uuid;
 	}
 
 	/**
@@ -169,9 +173,8 @@ class Phreezer
 			}
 
 			else if (is_object($value)) {
-				$tmp   = $this->freeze($value, $objects);
-				$value = '__phreezer_' . $tmp['root'];
-				unset($tmp);
+				$childuuid   = $this->freezeObject($value, $objects);
+				$value = '__phreezer_' . $childuuid;
 			}
 		}
 	}
@@ -284,28 +287,6 @@ class Phreezer
 	}
 
 	/**
-	 * Returns the Phreezer\HashGenerator implementation used
-	 * to generate hash objects.
-	 *
-	 * @return Phreezer\HashGenerator
-	 */
-	public function getHashGenerator()
-	{
-		return $this->hashGenerator;
-	}
-
-	/**
-	 * Sets the Phreezer\HashGenerator implementation used
-	 * to generate hash objects.
-	 *
-	 * @param Phreezer\HashGenerator $hashGenerator
-	 */
-	public function setHashGenerator(HashGenerator $hashGenerator)
-	{
-		$this->hashGenerator = $hashGenerator;
-	}
-
-	/**
 	 * Returns the blacklist of class names for which aggregates objects are
 	 * not frozen.
 	 *
@@ -356,43 +337,11 @@ class Phreezer
 		$this->useAutoload = $flag;
 	}
 
-	/**
-	 * Checks whether an object is dirty, ie. if its SHA1 hash is still valid.
-	 *
-	 * Returns TRUE when the object's __phreezer_hash attribute is no
-	 * longer valid or does not exist.
-	 * Returns FALSE when the object's __phreezer_hash attribute is
-	 * still valid.
-	 *
-	 * @param  object  $object The object that is to be checked.
-	 * @param  boolean $rehash Whether or not to rehash dirty objects.
-	 * @return boolean
-	 * @throws InvalidArgumentException
-	 */
-	public function isDirty($object, $rehash = FALSE)
+	protected function getHash(Array $object)
 	{
-		// Bail out if a non-object was passed.
-		if (!is_object($object)) {
-			throw Util::getInvalidArgumentException(1, 'object');
+		if (isset($object['state']['__phreezer_hash'])) {
+			unset($object['state']['__phreezer_hash']);
 		}
-
-		// Bail out if a non-boolean was passed.
-		if (!is_bool($rehash)) {
-			throw Util::getInvalidArgumentException(2, 'boolean');
-		}
-
-		$isDirty = TRUE;
-		$hash = $this->hashGenerator->getHash($object);
-
-		if (isset($object->__phreezer_hash) &&
-			$object->__phreezer_hash == $hash) {
-			$isDirty = FALSE;
-		}
-
-		if ($isDirty && $rehash) {
-			$object->__phreezer_hash = $hash;
-		}
-
-		return $isDirty;
+		return sha1(serialize($object));
 	}
 }

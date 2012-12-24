@@ -6,7 +6,6 @@ use Phreezer\Phreezer;
 use Phreezer\Storage\CouchDB;
 use Phreezer\Cache;
 use Phreezer\IdGenerator\UUID;
-use Phreezer\HashGenerator\NonRecursiveSHA1;
 
 $lazyProxy = false;
 $blacklist = array();
@@ -14,7 +13,6 @@ $useAutoload = true;
 
 $freezer = new Phreezer(
 	new UUID(),
-	new NonRecursiveSHA1(new UUID()),
 	$blacklist,
 	$useAutoload
 );

@@ -45,36 +45,71 @@
 
 namespace Phreezer;
 
+use Phreezer\Cache;
+
 class Cache
 {
 	/**
 	 * @var array
 	 */
-	protected $objects = array();
+	protected static $objects = array(
+		'frozen'=>array(),
+		'thawed'=>array()
+	);
 
-	/**
-	 * Retrieves an object from the object cache.
-	 *
-	 * @param  string $id
-	 * @return object
-	 */
-	public function get($id)
+	public static function get($id)
 	{
-		if (isset($this->objects[$id])) {
-			return $this->objects[$id];
-		} else {
+		if (isset(self::$objects['frozen'][$id])) {
+			return self::getFrozen($id);
+		}
+		elseif (isset(self::$objects['thawed'][$id])) {
+			return self::getThawed($id);
+		}
+		else {
 			return FALSE;
 		}
 	}
 
-	/**
-	 * Puts an object into the object cache.
-	 *
-	 * @param string $id
-	 * @param object $object
-	 */
-	public function put($id, $object)
+	public static function put($id, $object)
 	{
-		$this->objects[$id] = $object;
+		if(is_array($object)){
+			self::putFrozen($id, $object);
+		}
+		else{
+			self::putThawed($id, $object);
+		}
+	}
+
+	public static function delete($id){
+		self::deleteFrozen($id);
+		self::deleteThawed($id);
+	}
+
+	protected static function getFrozen($id){
+		return @self::$objects['frozen'][$id] ?: false;
+	}
+
+	protected static function getThawed($id){
+		return @self::$objects['thawed'][$id] ?: false;
+	}
+
+	protected static function putFrozen($id, $object){
+		self::$objects['frozen'][$id] = $object;
+	}
+
+	protected static function putThawed($id, $object){
+		self::$objects['thawed'][$id] = $object;
+	}
+
+	protected static function deleteFrozen($id){
+		if(isset(self::$objects['frozen'][$id])){
+			unset(self::$objects['frozen'][$id]);
+		}
+	}
+
+	protected static function deleteThawed($id){
+		if(isset(self::$objects['thawed'][$id])){
+			unset(self::$objects['thawed'][$id]);
+		}
 	}
 }

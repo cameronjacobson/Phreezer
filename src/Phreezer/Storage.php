@@ -138,7 +138,7 @@ abstract class Storage
 		}
 
 		// Try to retrieve object from the object cache.
-		$object = $this->cache->get($id);
+		$object = Cache::get($id);
 
 		if (!$object) {
 			// Retrieve object from the object storage.
@@ -147,7 +147,7 @@ abstract class Storage
 			$object = $this->freezer->thaw($frozenObject);
 
 			// Put object into the object cache.
-			$this->cache->put($id, $object);
+			Cache::put($id, $object);
 		}
 
 		return $object;

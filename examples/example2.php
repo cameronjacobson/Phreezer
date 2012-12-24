@@ -6,7 +6,6 @@ use Phreezer\Phreezer;
 use Phreezer\Storage\CouchDB;
 use Phreezer\Cache;
 use Phreezer\IdGenerator\UUID;
-use Phreezer\HashGenerator\NonRecursiveSHA1;
 
 $lazyProxy = false;
 $blacklist = array();
@@ -14,7 +13,6 @@ $useAutoload = true;
 
 $freezer = new Phreezer(
 	new UUID(),
-	new NonRecursiveSHA1(new UUID()),
 	$blacklist,
 	$useAutoload
 );
@@ -22,7 +20,7 @@ $freezer = new Phreezer(
 $couch = new CouchDB('mydb', $freezer, new Cache(), $lazyProxy, 'localhost', 5984);
 
 $ids = [];
-for($x=0;$x<10;$x++){
+for($x=0;$x<1;$x++){
 	$obj = new blah();
 	$obj->a = 1+$x;
 	$obj->b = 2+$x;
@@ -43,6 +41,17 @@ foreach($ids as $id){
 }
 echo PHP_EOL;
 
+// verify hashing function prevents resubmission of duplicate object
+foreach($ids as $id){
+	echo 'FETCHING: '.$id.PHP_EOL;
+	$obj = $couch->fetch($id);
+	echo 'STORING SAME VERSION OF: '.$id.PHP_EOL;
+	$couch->store($obj);
+	echo PHP_EOL;
+}
+echo PHP_EOL;
+exit;
+/*
 foreach($ids as $id){
 	$obj = $couch->fetch($id);
 	echo 'DELETING: '.$id.PHP_EOL;
@@ -50,7 +59,7 @@ foreach($ids as $id){
 	$couch->store($obj);
 }
 echo PHP_EOL;
-
+*/
 class blah
 {
 	public $a;
