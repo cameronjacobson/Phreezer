@@ -45,11 +45,8 @@
 
 namespace Phreezer;
 
-use Phreezer\NonRecursiveSHA1;
-use Phreezer\IdGenerator\UUID;
 use Phreezer\Util;
 use Phreezer\Cache;
-use Phreezer\IdGenerator;
 
 class Phreezer
 {
@@ -64,26 +61,14 @@ class Phreezer
 	protected $blacklist = array();
 
 	/**
-	 * @var Phreezer\IdGenerator
-	 */
-	protected $idGenerator;
-
-	/**
 	 * Constructor.
 	 *
-	 * @param  Phreezer\IdGenerator   $idGenerator
 	 * @param  array                  $blacklist
 	 * @param  boolean                $useAutoload
 	 * @throws InvalidArgumentException
 	 */
-	public function __construct(IdGenerator $idGenerator = NULL, array $blacklist = array(), $useAutoload = TRUE)
+	public function __construct(array $blacklist = array(), $useAutoload = TRUE)
 	{
-		// Use Phreezer\IdGenerator\UUID by default.
-		if ($idGenerator === NULL) {
-			$idGenerator = new UUID;
-		}
-
-		$this->setIdGenerator($idGenerator);
 		$this->setBlacklist($blacklist);
 		$this->setUseAutoload($useAutoload);
 	}
@@ -118,7 +103,7 @@ class Phreezer
 		// The object has not been frozen before, generate a new UUID and
 		// store it in the "special" __phreezer_uuid attribute.
 		if (!isset($object->__phreezer_uuid)) {
-			$object->__phreezer_uuid = $this->idGenerator->getId();
+			$object->__phreezer_uuid = $this->getId();
 		}
 
 		$uuid = $object->__phreezer_uuid;
@@ -265,28 +250,6 @@ class Phreezer
 	}
 
 	/**
-	 * Returns the Phreezer\IdGenerator implementation used
-	 * to generate object identifiers.
-	 *
-	 * @return Phreezer\IdGenerator
-	 */
-	public function getIdGenerator()
-	{
-		return $this->idGenerator;
-	}
-
-	/**
-	 * Sets the Phreezer\IdGenerator implementation used
-	 * to generate object identifiers.
-	 *
-	 * @param Phreezer\IdGenerator $idGenerator
-	 */
-	public function setIdGenerator(IdGenerator $idGenerator)
-	{
-		$this->idGenerator = $idGenerator;
-	}
-
-	/**
 	 * Returns the blacklist of class names for which aggregates objects are
 	 * not frozen.
 	 *
@@ -344,4 +307,15 @@ class Phreezer
 		}
 		return sha1(serialize($object));
 	}
+
+	public function getId() {
+		return sprintf(
+			'%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+			mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+			mt_rand(0, 0x0fff) | 0x4000,
+			mt_rand(0, 0x3fff) | 0x8000,
+			mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+		);
+	}
+
 }

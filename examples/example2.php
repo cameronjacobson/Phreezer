@@ -5,14 +5,12 @@ require_once(dirname(__DIR__).'/vendor/autoload.php');
 use Phreezer\Phreezer;
 use Phreezer\Storage\CouchDB;
 use Phreezer\Cache;
-use Phreezer\IdGenerator\UUID;
 
 $lazyProxy = false;
 $blacklist = array();
 $useAutoload = true;
 
 $freezer = new Phreezer(
-	new UUID(),
 	$blacklist,
 	$useAutoload
 );
@@ -50,8 +48,7 @@ foreach($ids as $id){
 	echo PHP_EOL;
 }
 echo PHP_EOL;
-exit;
-/*
+
 foreach($ids as $id){
 	$obj = $couch->fetch($id);
 	echo 'DELETING: '.$id.PHP_EOL;
@@ -59,7 +56,7 @@ foreach($ids as $id){
 	$couch->store($obj);
 }
 echo PHP_EOL;
-*/
+
 class blah
 {
 	public $a;

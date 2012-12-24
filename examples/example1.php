@@ -5,14 +5,12 @@ require_once(dirname(__DIR__).'/vendor/autoload.php');
 use Phreezer\Phreezer;
 use Phreezer\Storage\CouchDB;
 use Phreezer\Cache;
-use Phreezer\IdGenerator\UUID;
 
 $lazyProxy = false;
 $blacklist = array();
 $useAutoload = true;
 
 $freezer = new Phreezer(
-	new UUID(),
 	$blacklist,
 	$useAutoload
 );
