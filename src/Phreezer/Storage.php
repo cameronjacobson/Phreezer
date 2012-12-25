@@ -49,6 +49,7 @@ use Phreezer\Phreezer;
 use Phreezer\Cache;
 use Phreezer\LazyProxy;
 use Phreezer\Util;
+use Phixd\Phixd;
 
 abstract class Storage
 {
@@ -108,6 +109,8 @@ abstract class Storage
 			throw Util::getInvalidArgumentException(1, 'object');
 		}
 
+		Phixd::emit('beforestore', [$object]);
+
 		$this->doStore($this->freezer->freeze($object));
 
 		return $object->__phreezer_uuid;
@@ -138,7 +141,7 @@ abstract class Storage
 			// Put object into the object cache.
 			Cache::put($id, $object);
 		}
-
+		Phixd::emit('afterfetch', [$object]);
 		return $object;
 	}
 

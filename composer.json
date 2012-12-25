@@ -1,4 +1,7 @@
 {
+    "require": {
+        "phixd/phixd": "1.0.*@dev"
+    },
 	"autoload": {
 		"psr-0": {
 			"Phreezer": "src/"
