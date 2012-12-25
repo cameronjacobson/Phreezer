@@ -18,8 +18,8 @@ $start = microtime(true);
 
 $couch = new CouchDB([
 	'database'  => 'mydb',
-	'user'      => 'cameron',
-	'pass'      => 'cameron'
+	'user'      => '{{USERNAME}}',
+	'pass'      => '{{PASSWORD}}'
 ]);
 
 Phixd::on('phreezer.store.before', function($obj){
