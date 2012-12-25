@@ -22,11 +22,11 @@ $couch = new CouchDB([
 	'pass'      => 'cameron'
 ]);
 
-Phixd::on('store.before', function($obj){
+Phixd::on('phreezer.store.before', function($obj){
 	echo 'BEFORE STORE: '.$obj->c.PHP_EOL;
 });
 
-Phixd::on('fetch.after', function($obj){
+Phixd::on('phreezer.fetch.after', function($obj){
 	echo 'AFTER FETCH: '.$obj->b.PHP_EOL;
 });
 

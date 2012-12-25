@@ -109,7 +109,7 @@ abstract class Storage
 			throw Util::getInvalidArgumentException(1, 'object');
 		}
 
-		Phixd::emit('store.before', [$object]);
+		Phixd::emit('phreezer.store.before', [$object]);
 
 		$this->doStore($this->freezer->freeze($object));
 
@@ -141,7 +141,7 @@ abstract class Storage
 			// Put object into the object cache.
 			Cache::put($id, $object);
 		}
-		Phixd::emit('fetch.after', [$object]);
+		Phixd::emit('phreezer.fetch.after', [$object]);
 		return $object;
 	}
 
