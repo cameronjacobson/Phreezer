@@ -90,6 +90,8 @@ class CouchDB extends Storage
 	{
 		$options['host'] = @$options['host'] ?: 'localhost';
 		$options['port'] = @$options['port'] ?: 5984;
+		$options['user'] = @$options['user'] ?: null;
+		$options['pass'] = @$options['pass'] ?: null;
 		$options['lazyproxy'] = @$options['lazyproxy'] ?: FALSE;
 		$options['freezer'] = @$options['freezer'] ?: null;
 		parent::__construct(@$options['lazyproxy'], @$options['freezer']);
@@ -105,6 +107,9 @@ class CouchDB extends Storage
 		if (!is_int($options['port'])) {
 			throw Util::getInvalidArgumentException(5, 'integer');
 		}
+
+		$this->user = $options['user'];
+		$this->pass = $options['pass'];
 
 		$this->database = $options['database'];
 		$this->host = $options['host'];
@@ -240,11 +245,12 @@ class CouchDB extends Storage
 		}
 
 		$request = sprintf(
-			"%s %s HTTP/1.1\r\nHost: %s:%d\r\nContent-Type: application/json\r\nConnection: close\r\n",
+			"%s %s HTTP/1.1\r\nHost: %s:%d\r\n%sContent-Type: application/json\r\nConnection: close\r\n",
 			$method,
 			$url,
 			$this->host,
-			$this->port
+			$this->port,
+			empty($this->user) ? '' : 'Authorization: Basic '.base64_encode($this->user.':'.$this->pass)."\r\n"
 		);
 
 		if ($payload !== NULL) {

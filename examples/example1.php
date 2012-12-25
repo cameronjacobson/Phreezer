@@ -5,7 +5,6 @@ require_once(dirname(__DIR__).'/vendor/autoload.php');
 use Phreezer\Phreezer;
 use Phreezer\Storage\CouchDB;
 
-
 #########################################
 // LONG CONSTRUCTOR
 
@@ -20,6 +19,8 @@ $freezer = new Phreezer([
 
 $couch = new CouchDB([
 	'database'  => 'mydb',
+	'user'      => '{{USERNAME}}',
+	'pass'      => '{{PASSWORD}}',
 	'host'      => 'localhost',
 	'port'      => 5984,
 	'lazyproxy' => $lazyProxy,
@@ -31,7 +32,12 @@ var_dump($couch);
 #########################################
 // SHORTCUT CONSTRUCTOR : only 'database' is required argument
 
+/**
+ * NOTE:  username/password are optional.  It depends
+ *    on how your database is configured.
+ */
+
 $couch = new CouchDB([
-	'database'=>'mydb'
+	'database'  => 'mydb'
 ]);
 var_dump($couch);
