@@ -121,26 +121,31 @@ class Phreezer
 				'state'     => []
 			];
 
-			// Iterate over the attributes of the object.
-			foreach (Util::readAttributes($object) as $k => $v) {
-				if ($k !== '__phreezer_uuid') {
+			if(in_array('JsonSerializable', class_implements($object))){
+				$objects[$uuid]['state'] = json_decode(json_encode($object),true);
+			}
+			else {
+				// Iterate over the attributes of the object.
+				foreach (Util::readAttributes($object) as $k => $v) {
+					if ($k !== '__phreezer_uuid') {
 
-					if (is_array($v)) {
-						$this->freezeArray($v, $objects);
-					}
-					else if (is_object($v) && !in_array(get_class($v), $this->blacklist)) {
-						// Freeze the aggregated object.
-						$childuuid = $this->freezeObject($v, $objects);
+						if (is_array($v)) {
+							$this->freezeArray($v, $objects);
+						}
+						else if (is_object($v) && !in_array(get_class($v), $this->blacklist)) {
+							// Freeze the aggregated object.
+							$childuuid = $this->freezeObject($v, $objects);
 
-						// Replace $v with the aggregated object's UUID.
-						$v = '__phreezer_' . $childuuid;
-					}
-					else if (is_resource($v)) {
-						$v = NULL;
-					}
+							// Replace $v with the aggregated object's UUID.
+							$v = '__phreezer_' . $childuuid;
+						}
+						else if (is_resource($v)) {
+							$v = NULL;
+						}
 
-					// Store the attribute in the object's state array.
-					$objects[$uuid]['state'][$k] = $v;
+						// Store the attribute in the object's state array.
+						$objects[$uuid]['state'][$k] = $v;
+					}
 				}
 			}
 		}
