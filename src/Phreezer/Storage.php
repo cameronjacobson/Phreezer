@@ -49,7 +49,7 @@ use Phreezer\Phreezer;
 use Phreezer\Cache;
 use Phreezer\LazyProxy;
 use Phreezer\Util;
-use Phixd\Phixd;
+use \Phixd\Phixd;
 
 abstract class Storage
 {

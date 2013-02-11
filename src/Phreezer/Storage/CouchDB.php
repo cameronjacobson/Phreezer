@@ -48,23 +48,14 @@ namespace Phreezer\Storage;
 use Phreezer\Phreezer;
 use Phreezer\Storage;
 use Phreezer\Util;
+use Phreezer\Storage\CouchDB\View;
 
 class CouchDB extends Storage
 {
-	/**
-	 * @var string
-	 */
-	protected $database;
-
-	/**
-	 * @var string
-	 */
-	protected $host;
-
-	/**
-	 * @var int
-	 */
-	protected $port;
+	public $database;
+	public $scheme;
+	public $host;
+	public $port;
 
 	/**
 	 * @var array
@@ -88,6 +79,7 @@ class CouchDB extends Storage
 	 */
 	public function __construct(array $options = [])
 	{
+		$options['scheme'] = @$options['scheme'] ?: 'http';
 		$options['host'] = @$options['host'] ?: 'localhost';
 		$options['port'] = @$options['port'] ?: 5984;
 		$options['user'] = @$options['user'] ?: null;
@@ -104,7 +96,7 @@ class CouchDB extends Storage
 			throw Util::getInvalidArgumentException(4, 'string');
 		}
 
-		if (!is_int($options['port'])) {
+		if (!is_numeric($options['port'])) {
 			throw Util::getInvalidArgumentException(5, 'integer');
 		}
 
@@ -114,6 +106,26 @@ class CouchDB extends Storage
 		$this->database = $options['database'];
 		$this->host = $options['host'];
 		$this->port = $options['port'];
+		$this->scheme = $options['scheme'];
+
+		foreach((array)@$options['services'] as $servicename=>$service){
+			switch($servicename){
+				case '_view':
+				case '_show':
+				case '_list':
+				case '_filter':
+				case '_repl':
+					$this->$servicename = $service($this);
+					break;
+				default:
+					throw new \Exception('invalid CouchDB servicename: '.$servicename);
+					break;
+			}
+		}
+		if(empty($this->_view)){
+			// Default VIEW service
+			$this->_view = new View($this);
+		}
 	}
 
 	/**
