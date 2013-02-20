@@ -35,7 +35,7 @@ class View
 				unset($params['keys']);
 			}
 
-			$qs = empty($params) ? '' : '?'.http_build_query($params);
+			$qs = empty($params['query']) ? '' : '?'.http_build_query($params['query']);
 
 			$opt2 = array(
 				CURLOPT_URL => $url.$view.$qs,
@@ -45,7 +45,6 @@ class View
 			curl_setopt_array($ch, $opt1+$opt2);
 
 			$result = curl_exec($ch);
-
 			if(curl_errno($ch)) {
 				throw new \Exception('Error: '.curl_error($ch));
 			}
@@ -53,7 +52,7 @@ class View
 			curl_close($ch);
 
 			// whitelist meta-data for inclusion in result
-			if($params['opts']['filter']){
+			if(@$params['opts']['filter']){
 				$filtered = $this->filter($params['opts']['filter'], json_decode($result,true), $params['opts']);
 				return @$params['opts']['json'] ? json_encode($filtered) : $filtered;
 			}
@@ -67,7 +66,8 @@ class View
 	}
 
 	private function filter($filtername, $data, $opts){
-		foreach($data['rows'] as &$v){
+		$return = array('rows'=>array());
+		foreach($data['rows'] as $k=>&$v){
 			$buff = array();
 			switch($filtername){
 				case 'id_only':
@@ -80,6 +80,10 @@ class View
 					break;
 				case 'doc_only':
 					$buff = $v['doc'];
+					break;
+				case 'docstate_only':
+					$buff = $v['doc']['state'];
+					$k = $v['id'];
 					break;
 				case 'value_only':
 					$buff = $v['value'];
@@ -96,12 +100,12 @@ class View
 			elseif(!empty($opts['whitelist'])){
 				$tmp = array();
 				foreach($opts['whitelist'] as $key){
-					$tmp[$key] = $v[$key];
+					$tmp[$key] = $buff[$key];
 				}
 				$buff = $tmp;
 			}
-			$v = $buff;
+			$return['rows'][$k] = $buff;
 		}
-		return $data;
+		return $return;
 	}
 }
