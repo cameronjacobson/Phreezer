@@ -1,4 +1,5 @@
 {
+	"name":"phreezer/phreezer",
     "require": {
         "phixd/phixd": "1.0.*@dev"
     },
