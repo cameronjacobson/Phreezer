@@ -5,3 +5,4 @@ My take on sebastianbergmann/php-object-freezer.  Currently with only slight mod
 ## see examples in:
 
 examples/*
+
