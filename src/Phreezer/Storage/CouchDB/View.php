@@ -25,7 +25,7 @@ class View
 			if(!empty($params['keys'])){
 				$opt1 = array(
 					CURLOPT_POSTFIELDS => json_encode(array(
-						'keys' => $params['keys']
+						'keys' => array_values($params['keys'])
 					)),
 					CURLOPT_POST => 1,
 					CURLOPT_HTTPHEADER => array(
@@ -37,6 +37,10 @@ class View
 
 			$qs = empty($params['query']) ? '' : '?'.http_build_query($params['query']);
 
+			if(@$params['debug']){
+				error_log($url.$view.$qs);
+			}
+
 			$opt2 = array(
 				CURLOPT_URL => $url.$view.$qs,
 				CURLOPT_HEADER => 0,
@@ -45,6 +49,11 @@ class View
 			curl_setopt_array($ch, $opt1+$opt2);
 
 			$result = curl_exec($ch);
+
+			if(@$params['debug']){
+				error_log($result);
+			}
+
 			if(curl_errno($ch)) {
 				throw new \Exception('Error: '.curl_error($ch));
 			}
@@ -71,12 +80,10 @@ class View
 			$buff = array();
 			switch($filtername){
 				case 'id_only':
-					$v = $v['id'];
-					continue;
+					$buff = $v['id'];
 					break;
 				case 'key_only':
-					$v = $v['key'];
-					continue;
+					$buff = $v['key'];
 					break;
 				case 'doc_only':
 					$buff = $v['doc'];
@@ -92,17 +99,19 @@ class View
 					throw new Exception('Invalid filter on Couch View: '.$filtername);
 					break;
 			}
-			if(!empty($opts['blacklist'])){
-				foreach($opts['blacklist'] as $key){
-					unset($buff[$key]);
+			if(!is_string($buff)){
+				if(!empty($opts['blacklist'])){
+					foreach($opts['blacklist'] as $key){
+						unset($buff[$key]);
+					}
 				}
-			}
-			elseif(!empty($opts['whitelist'])){
-				$tmp = array();
-				foreach($opts['whitelist'] as $key){
-					$tmp[$key] = $buff[$key];
+				elseif(!empty($opts['whitelist'])){
+					$tmp = array();
+					foreach($opts['whitelist'] as $key){
+						$tmp[$key] = $buff[$key];
+					}
+					$buff = $tmp;
 				}
-				$buff = $tmp;
 			}
 			$return['rows'][$k] = $buff;
 		}
