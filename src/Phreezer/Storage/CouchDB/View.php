@@ -38,7 +38,7 @@ class View
 			$qs = empty($params['query']) ? '' : '?'.http_build_query($params['query']);
 
 			if(@$params['debug']){
-				error_log($url.$view.$qs);
+				error_log('DEBUG _view url: '.$url.$view.$qs);
 			}
 
 			$opt2 = array(
@@ -51,7 +51,7 @@ class View
 			$result = curl_exec($ch);
 
 			if(@$params['debug']){
-				error_log($result);
+				error_log('DEBUG _view raw result: '.$result);
 			}
 
 			if(curl_errno($ch)) {
@@ -63,8 +63,12 @@ class View
 			// whitelist meta-data for inclusion in result
 			if(@$params['opts']['filter']){
 				$filtered = $this->filter($params['opts']['filter'], json_decode($result,true), $params['opts']);
+				if(@$params['debug']){
+					error_log('DEBUG _view filtered result: '.json_encode($filtered));
+				}
 				return @$params['opts']['json'] ? json_encode($filtered) : $filtered;
 			}
+
 
 			return @$params['opts']['json'] ? $result : json_decode($result, true);
 		}
