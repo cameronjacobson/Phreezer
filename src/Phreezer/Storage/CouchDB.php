@@ -128,6 +128,10 @@ class CouchDB extends Storage
 		}
 	}
 
+	public function setRevision($uuid, $rev){
+		$this->revisions[$uuid] = $rev;
+	}
+
 	/**
 	 * Freezes an object and stores it in the object storage.
 	 *

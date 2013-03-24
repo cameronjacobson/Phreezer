@@ -2,6 +2,8 @@
 
 namespace Phreezer\Storage\CouchDB;
 
+use \Phreezer\Phreezer;
+
 class View
 {
 	public function __construct($couch){
@@ -33,6 +35,10 @@ class View
 					)
 				);
 				unset($params['keys']);
+			}
+
+			if(!empty($params['opts']['thaw'])){
+				$params['query']['include_docs'] = 'true';
 			}
 
 			$qs = empty($params['query']) ? '' : '?'.http_build_query($params['query']);
@@ -68,12 +74,30 @@ class View
 				}
 				return @$params['opts']['json'] ? json_encode($filtered) : $filtered;
 			}
+			elseif(!empty($params['opts']['thaw'])){
+				$return = array();
+				$phreezer = new Phreezer();
+				$result = json_decode($result, true);
+				foreach($result['rows'] as $k=>&$v){
+					$object = array(
+                        'objects'=>array($v['doc']['_id']=>array(
+                            'className'=>$v['doc']['class'],
+                            'state'=>$v['doc']['state']
+                        ))
+                    );
+					$return[$v['id']] = $phreezer->thaw($object,$v['doc']['_id']);
+					$this->couch->setRevision($v['doc']['_id'], $v['doc']['_rev']);
+				}
+				return $return;
+			}
 
 
 			return @$params['opts']['json'] ? $result : json_decode($result, true);
 		}
 		catch(\Exception $e){
-			curl_close($ch);
+			if(!empty($ch)){
+				curl_close($ch);
+			}
 			throw new \Exception($e->getMessage());
 		}
 	}
@@ -100,7 +124,7 @@ class View
 					$buff = $v['value'];
 					break;
 				default:
-					throw new Exception('Invalid filter on Couch View: '.$filtername);
+					throw new \Exception('Invalid filter on Couch View: '.$filtername);
 					break;
 			}
 			if(!is_string($buff)){
