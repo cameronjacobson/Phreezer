@@ -8,6 +8,7 @@ class View
 {
 	private $callbacks = array();
 	private $buffers = array();
+	private $couch;
 
 	public function __construct($couch){
 		$this->couch = $couch;
@@ -21,9 +22,13 @@ class View
 	public function async($view, $params = array('query'=>array(), 'opts'=>array())){
 		$this->prepParams($params);
 		$url = '/'.$this->couch->database.'/_design/'.$this->couch->database.'/_view/'.$view;
-		$this->couch->transport->get($url);
+		if(!empty($params['opts']['thaw'])){
+			$params['query']['include_docs'] = 'true';
+		}
+		$qs = empty($params['query']) ? '' : '?'.http_build_query($params['query']);
+		$this->couch->transport->get($url.$qs);
 
-		$this->callbacks[$this->couch->transport->getCount()] = function($result) use($params) {
+		$this->callbacks[$this->couch->transport->getCount()] = function($result) use ($params) {
 			// whitelist meta-data for inclusion in result
 			if(@$params['opts']['filter']){
 				$filtered = $this->filter($params['opts']['filter'], json_decode($result,true), $params['opts']);
@@ -57,7 +62,8 @@ class View
 		$this->couch->transport->fetch();
 		$buffers = $this->couch->transport->getBuffers('body');
 		foreach($buffers as $key=>$buffer){
-			$this->buffers[$key] = $this->callbacks[$key]($buffer);
+			$fn = $this->callbacks[$key];
+			$this->buffers[$key] = $fn($buffer);
 			$this->cleanup($key);
 		}
 	}
@@ -75,14 +81,12 @@ class View
 	// TODO: ?? Swap out with SimpleHttpClient
 	public function query($view, $params = array('query'=>array(),'opts'=>array())) {
 		$this->prepParams($params);
-		$view = '/'.$this->couch->database.'/_design/'.$this->couch->database.'/_view/'.$view;
-		$qs = empty($params['query']) ? '' : '?'.http_build_query($params['query']);
-		$this->async($view.$qs, $params);
-		$this->couch->transport->fetch();
-		$buffers = $this->couch->transport->getBuffers('body');
-		$result = $this->callbacks[1]($buffers[1]);
+		$this->async($view, $params);
+		$this->fetch();//$this->couch->transport->fetch();
 		$this->cleanup(1);
-		return $result;
+		$return = $this->buffers[1];
+		$this->flush();
+		return $return;
 	}
 
 	private function cleanup($index){

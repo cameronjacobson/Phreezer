@@ -64,7 +64,8 @@ class CouchDB extends Storage
 	 */
 	protected $debug = FALSE;
 
-	protected $transport;
+	public $_view;
+	public $transport;
 
 	/**
 	 * Constructor.
@@ -185,7 +186,8 @@ class CouchDB extends Storage
 				json_encode($payload)
 			);
 
-			if (strpos($response['headers'], 'HTTP/1.0 201 Created') !== 0) {
+			if ((strpos($response['headers'], 'HTTP/1.0 201 Created') !== 0)
+				&& (strpos($response['headers'], 'HTTP/1.0 200 OK') !== 0)) {
 				// @codeCoverageIgnoreStart
 				throw new \RuntimeException('Could not save objects.');
 				// @codeCoverageIgnoreEnd
