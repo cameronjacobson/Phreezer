@@ -14,8 +14,8 @@ class blah implements JsonSerializable
 			'a'=>$this->a,
 			'b'=>$this->b,
 			'c'=>$this->c,
-			'_delete'=>$this->_delete,
-			'__phreezer_hash'=>$this->__phreezer_hash
+			'_delete'=>empty($this->_delete) ? null : $this->_delete,
+			'__phreezer_hash'=>empty($this->__phreezer_hash) ? null : $this->__phreezer_hash
 		];
 	}
 }
@@ -33,9 +33,9 @@ $useAutoload = true;
 $start = microtime(true);
 
 $couch = new CouchDB([
-	'database'  => 'mydb',
-	'user'      => '{{USERNAME}}',
-	'pass'      => '{{PASSWORD}}'
+	'database'  => 'phreezer_test',
+//	'user'      => '{{USERNAME}}',
+//	'pass'      => '{{PASSWORD}}'
 ]);
 
 $ids = [];

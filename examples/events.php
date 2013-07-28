@@ -17,9 +17,9 @@ $useAutoload = true;
 $start = microtime(true);
 
 $couch = new CouchDB([
-	'database'  => 'mydb',
-	'user'      => '{{USERNAME}}',
-	'pass'      => '{{PASSWORD}}'
+	'database'  => 'phreezer_test',
+//	'user'      => '{{USERNAME}}',
+//	'pass'      => '{{PASSWORD}}'
 ]);
 
 Phixd::on('phreezer.store.before', function($obj){
@@ -32,9 +32,9 @@ Phixd::on('phreezer.fetch.after', function($obj){
 
 
 $obj = new blah();
-$obj->a = 1+$x;
-$obj->b = 2+$x;
-$obj->c = 3+$x;
+$obj->a = 1;
+$obj->b = 2;
+$obj->c = 3;
 
 echo 'STORING RECORD: ';
 $id = $couch->store($obj);

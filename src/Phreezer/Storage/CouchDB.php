@@ -49,14 +49,11 @@ use Phreezer\Phreezer;
 use Phreezer\Storage;
 use Phreezer\Util;
 use Phreezer\Storage\CouchDB\View;
+use \SimpleHttpClient\SimpleHttpClient;
 
 class CouchDB extends Storage
 {
 	public $database;
-	public $scheme;
-	public $host;
-	public $port;
-
 	/**
 	 * @var array
 	 */
@@ -67,6 +64,8 @@ class CouchDB extends Storage
 	 */
 	protected $debug = FALSE;
 
+	protected $transport;
+
 	/**
 	 * Constructor.
 	 *
@@ -75,38 +74,25 @@ class CouchDB extends Storage
 	 * @param  boolean           $useLazyLoad   Flag that controls whether objects are fetched using lazy load or not
 	 * @param  string            $host          Hostname of the CouchDB instance to be used
 	 * @param  int               $port          Port of the CouchDB instance to be used
-	 * @throws InvalidArgumentException
+	 * @throws Exception
 	 */
 	public function __construct(array $options = [])
 	{
-		$options['scheme'] = @$options['scheme'] ?: 'http';
-		$options['host'] = @$options['host'] ?: 'localhost';
-		$options['port'] = @$options['port'] ?: 5984;
-		$options['user'] = @$options['user'] ?: null;
-		$options['pass'] = @$options['pass'] ?: null;
+		$this->transport = new SimpleHttpClient([
+			'scheme'      => @$options['scheme'] ?: 'http',
+			'host'        => @$options['host']   ?: 'localhost',
+			'port'        => @$options['port']   ?: 5984,
+			'user'        => @$options['user']   ?: null,
+			'pass'        => @$options['pass']   ?: null,
+			'contentType' => 'application/json'
+		]);
+
 		$options['lazyproxy'] = @$options['lazyproxy'] ?: FALSE;
 		$options['freezer'] = @$options['freezer'] ?: null;
+
 		parent::__construct(@$options['lazyproxy'], @$options['freezer']);
 
-		if (!is_string($options['database'])) {
-			throw Util::getInvalidArgumentException(1, 'string');
-		}
-
-		if (!is_string($options['host'])) {
-			throw Util::getInvalidArgumentException(4, 'string');
-		}
-
-		if (!is_numeric($options['port'])) {
-			throw Util::getInvalidArgumentException(5, 'integer');
-		}
-
-		$this->user = $options['user'];
-		$this->pass = $options['pass'];
-
 		$this->database = $options['database'];
-		$this->host = $options['host'];
-		$this->port = $options['port'];
-		$this->scheme = $options['scheme'];
 
 		foreach((array)@$options['services'] as $servicename=>$service){
 			switch($servicename){
@@ -122,9 +108,34 @@ class CouchDB extends Storage
 					break;
 			}
 		}
+
 		if(empty($this->_view)){
 			// Default VIEW service
 			$this->_view = new View($this);
+		}
+	}
+
+	public function __get($key){
+		switch($key){
+			case 'scheme':
+			case 'host':
+			case 'port':
+			case 'user':
+			case 'pass':
+				return $this->transport->$key;
+				break;
+		}
+	}
+
+	public function __set($key, $value){
+		switch($key){
+			case 'scheme':
+			case 'host':
+			case 'port':
+			case 'user':
+			case 'pass':
+				$this->transport->$key = $value;
+				break;
 		}
 	}
 
@@ -174,7 +185,7 @@ class CouchDB extends Storage
 				json_encode($payload)
 			);
 
-			if (strpos($response['headers'], 'HTTP/1.1 201 Created') !== 0) {
+			if (strpos($response['headers'], 'HTTP/1.0 201 Created') !== 0) {
 				// @codeCoverageIgnoreStart
 				throw new \RuntimeException('Could not save objects.');
 				// @codeCoverageIgnoreEnd
@@ -219,7 +230,7 @@ class CouchDB extends Storage
 				'GET', '/' . $this->database . '/' . urlencode($id)
 			);
 
-			if (strpos($response['headers'], 'HTTP/1.1 200 OK') !== 0) {
+			if (strpos($response['headers'], 'HTTP/1.0 200 OK') !== 0) {
 				throw new \RuntimeException(
 					sprintf('Object with id "%s" could not be fetched.', $id)
 				);
@@ -254,45 +265,21 @@ class CouchDB extends Storage
 	 */
 	public function send($method, $url, $payload = NULL)
 	{
-		$socket = @fsockopen($this->host, $this->port, $errno, $errstr);
-
-		if (!$socket) {
-			throw new \RuntimeException($errno . ': ' . $errstr);
+		switch(strtolower($method)){
+			case 'get':
+				$this->transport->get($url);
+				break;
+			case 'post':
+				$this->transport->post($url, $payload);
+				break;
 		}
+		$this->transport->fetch();
+		$buffers = $this->transport->getBuffers(function($doc){
+			return explode("\r\n\r\n", $doc, 2);
+		});
+		$this->transport->flush();
 
-		$request = sprintf(
-			"%s %s HTTP/1.1\r\nHost: %s:%d\r\n%sContent-Type: application/json\r\nConnection: close\r\n",
-			$method,
-			$url,
-			$this->host,
-			$this->port,
-			empty($this->user) ? '' : 'Authorization: Basic '.base64_encode($this->user.':'.$this->pass)."\r\n"
-		);
-
-		if ($payload !== NULL) {
-			$request .= 'Content-Length: ' . strlen($payload) . "\r\n\r\n" .
-						$payload;
-		}
-
-		$request .= "\r\n";
-
-		// @codeCoverageIgnoreStart
-		if ($this->debug) {
-			print $request;
-		}
-		// @codeCoverageIgnoreEnd
-
-		fwrite($socket, $request);
-
-		$buffer = '';
-
-		while (!feof($socket)) {
-			$buffer .= fgets($socket);
-		}
-
-		list($headers, $body) = explode("\r\n\r\n", $buffer);
-
-		return ['headers' => $headers, 'body' => $body];
+		return ['headers' => $buffers[1][0], 'body' => $buffers[1][1]];
 	}
 
 	/**
