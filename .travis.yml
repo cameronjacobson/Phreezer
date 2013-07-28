@@ -5,6 +5,6 @@ php:
 
 before_script:
   - sudo apt-get install -y couchdb
-  - phpenv config-add myconfig.ini
+  - pecl install event
   - composer self-update
   - composer install
