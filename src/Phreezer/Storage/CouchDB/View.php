@@ -6,6 +6,9 @@ use \Phreezer\Phreezer;
 
 class View
 {
+	private $callbacks = array();
+	private $buffers = array();
+
 	public function __construct($couch){
 		$this->couch = $couch;
 	}
@@ -15,57 +18,12 @@ class View
 		$params['query'] = @$params['opts'] ? $params['query'] : $params;
 	}
 
-	// TODO: ?? Swap out with SimpleHttpClient
-	public function query($view, $params = array('query'=>array(),'opts'=>array())) {
+	public function async($view, $params = array('query'=>array(), 'opts'=>array())){
 		$this->prepParams($params);
-		try{
-			$ch = curl_init();
-			$url = $this->couch->scheme.'://'.$this->couch->host.':'.$this->couch->port;
-			$view = '/'.$this->couch->database.'/_design/'.$this->couch->database.'/_view/'.$view;
-			$opt1 = $opt2 = array();
+		$url = '/'.$this->couch->database.'/_design/'.$this->couch->database.'/_view/'.$view;
+		$this->couch->transport->get($url);
 
-			if(!empty($params['keys'])){
-				$opt1 = array(
-					CURLOPT_POSTFIELDS => json_encode(array(
-						'keys' => array_values($params['keys'])
-					)),
-					CURLOPT_POST => 1,
-					CURLOPT_HTTPHEADER => array(
-						"Content-Type: application/json"
-					)
-				);
-				unset($params['keys']);
-			}
-
-			if(!empty($params['opts']['thaw'])){
-				$params['query']['include_docs'] = 'true';
-			}
-
-			$qs = empty($params['query']) ? '' : '?'.http_build_query($params['query']);
-
-			if(@$params['debug']){
-				error_log('DEBUG _view url: '.$url.$view.$qs);
-			}
-
-			$opt2 = array(
-				CURLOPT_URL => $url.$view.$qs,
-				CURLOPT_HEADER => 0,
-				CURLOPT_RETURNTRANSFER => 1
-			);
-			curl_setopt_array($ch, $opt1+$opt2);
-
-			$result = curl_exec($ch);
-
-			if(@$params['debug']){
-				error_log('DEBUG _view raw result: '.$result);
-			}
-
-			if(curl_errno($ch)) {
-				throw new \Exception('Error: '.curl_error($ch));
-			}
-
-			curl_close($ch);
-
+		$this->callbacks[$this->couch->transport->getCount()] = function($result) use($params) {
 			// whitelist meta-data for inclusion in result
 			if(@$params['opts']['filter']){
 				$filtered = $this->filter($params['opts']['filter'], json_decode($result,true), $params['opts']);
@@ -90,16 +48,45 @@ class View
 				}
 				return $return;
 			}
-
-
 			return @$params['opts']['json'] ? $result : json_decode($result, true);
+		};
+		$this->callbacks[$this->couch->transport->getCount()]->bindTo($this);
+	}
+
+	public function fetch(){
+		$this->couch->transport->fetch();
+		$buffers = $this->couch->transport->getBuffers('body');
+		foreach($buffers as $key=>$buffer){
+			$this->buffers[$key] = $this->callbacks[$key]($buffer);
+			$this->cleanup($key);
 		}
-		catch(\Exception $e){
-			if(!empty($ch)){
-				curl_close($ch);
-			}
-			throw new \Exception($e->getMessage());
-		}
+	}
+
+	public function flush(){
+		$this->couch->transport->flush();
+		$this->callbacks = array();
+		$this->buffers = array();
+	}
+
+	public function getBuffers(){
+		return $this->buffers;
+	}
+
+	// TODO: ?? Swap out with SimpleHttpClient
+	public function query($view, $params = array('query'=>array(),'opts'=>array())) {
+		$this->prepParams($params);
+		$view = '/'.$this->couch->database.'/_design/'.$this->couch->database.'/_view/'.$view;
+		$qs = empty($params['query']) ? '' : '?'.http_build_query($params['query']);
+		$this->async($view.$qs, $params);
+		$this->couch->transport->fetch();
+		$buffers = $this->couch->transport->getBuffers('body');
+		$result = $this->callbacks[1]($buffers[1]);
+		$this->cleanup(1);
+		return $result;
+	}
+
+	private function cleanup($index){
+		unset($this->callbacks[$index]);
 	}
 
 	private function filter($filtername, $data, $opts){
