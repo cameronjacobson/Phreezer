@@ -26,6 +26,7 @@ class View
 			$params['query']['include_docs'] = 'true';
 		}
 		$qs = empty($params['query']) ? '' : '?'.http_build_query($params['query']);
+
 		$this->couch->transport->get($url.$qs);
 
 		$this->callbacks[$this->couch->transport->getCount()] = function($result) use ($params) {
@@ -95,6 +96,7 @@ class View
 
 	private function filter($filtername, $data, $opts){
 		$return = array('rows'=>array());
+		$data['rows'] = empty($data['rows']) ? array() : $data['rows'];
 		foreach($data['rows'] as $k=>&$v){
 			$buff = array();
 			switch($filtername){
