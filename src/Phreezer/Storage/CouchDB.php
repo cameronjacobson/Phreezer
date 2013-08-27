@@ -299,4 +299,8 @@ class CouchDB extends Storage
 
 		$this->debug = $flag;
 	}
+
+	public function getId(){
+		return $this->freezer->getId();
+	}
 }
