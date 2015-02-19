@@ -85,6 +85,8 @@ class CouchDB extends Storage
 			'port'        => @$options['port']   ?: 5984,
 			'user'        => @$options['user']   ?: null,
 			'pass'        => @$options['pass']   ?: null,
+			'base'        => @$options['base']   ?: null,
+			'dns_base'    => @$options['dns_base'] ?: null,
 			'contentType' => 'application/json'
 		]);
 
@@ -142,6 +144,47 @@ class CouchDB extends Storage
 
 	public function setRevision($uuid, $rev){
 		$this->revisions[$uuid] = $rev;
+	}
+
+	/**
+	 * Freezes an object and stores it in the object storage.
+	 *
+	 * @param array $frozenObject
+	 */
+	protected function doStoreWithCallback(array $frozenObject)
+	{
+		$payload = ['docs' => []];
+
+		foreach ($frozenObject['objects'] as $id => $object) {
+			$revision = NULL;
+
+			if (isset($this->revisions[$id])) {
+				$revision = $this->revisions[$id];
+			}
+
+			$data = [
+				'_id'   => $id,
+				'_rev'  => $revision,
+				'class' => $object['className'],
+				'state' => $object['state']
+			];
+
+			if(isset($data['state']['_delete'])){
+				$data['_deleted'] = true;
+				unset($object['state']['_delete']);
+			}
+
+			if (!$data['_rev']) {
+				unset($data['_rev']);
+			}
+
+			$payload['docs'][] = $data;
+		}
+
+		if (!empty($payload['docs'])) {
+			$this->transport->post('/' . $this->database . '/_bulk_docs', json_encode($payload));
+			$this->transport->dispatch();
+		}
 	}
 
 	/**
@@ -211,6 +254,25 @@ class CouchDB extends Storage
 					$this->revisions[$state['id']] = $state['rev'];
 				}
 			}
+		}
+	}
+
+	/**
+	 * Fetches a frozen object from the object storage and thaws it.
+	 *
+	 * @param  string $id      The ID of the object that is to be fetched.
+	 * @param  array  $objects Only used internally.
+	 * @return object
+	 * @throws InvalidArgumentException
+	 * @throws RuntimeException
+	 */
+	protected function doFetchWithCallback($id, array &$objects = [])
+	{
+		$isRoot = empty($objects);
+
+		if (!isset($objects[$id])) {
+			$this->transport->get('/' . $this->database . '/' . urlencode($id));
+			$this->transport->dispatch();
 		}
 	}
 

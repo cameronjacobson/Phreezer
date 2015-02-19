@@ -102,7 +102,7 @@ abstract class Storage
 	 * @param  object $object The object that is to be stored.
 	 * @return string
 	 */
-	public function store($object)
+	public function store($object, callable $cb = null)
 	{
 		// Bail out if a non-object was passed.
 		if (!is_object($object)) {
@@ -111,9 +111,77 @@ abstract class Storage
 
 		Phixd::emit('phreezer.store.before', [$object]);
 
-		$this->doStore($this->freezer->freeze($object));
+		if(!empty($cb)){
+			$this->transport->setCallback($cb);
 
-		return $object->__phreezer_uuid;
+			$this->transport->setProcessor(function(callable $cb,$key,$buffer) use ($object) {
+
+				list($headers,$body) = explode("\r\n\r\n",$buffer,2);
+
+				if ((strpos($headers, 'HTTP/1.0 201 Created') !== 0)
+					&& (strpos($headers, 'HTTP/1.0 200 OK') !== 0)) {
+					// @codeCoverageIgnoreStart
+					throw new \RuntimeException('Could not save objects.');
+					// @codeCoverageIgnoreEnd
+				}
+
+				$data = json_decode($body, TRUE);
+
+				foreach ($data as $state) {
+					if (isset($state['error'])) {
+						// @codeCoverageIgnoreStart
+						throw new \RuntimeException(
+							sprintf(
+								'Could not save object "%s": %s - %s',
+								$state['id'],
+								$state['error'],
+								$state['reason']
+							)
+						);
+						// @codeCoverageIgnoreEnd
+					} else {
+						$this->revisions[$state['id']] = $state['rev'];
+					}
+				}
+
+				if($this->transport->isDone()){
+					$cb($object->__phreezer_uuid);
+				}
+			});
+
+			$this->doStoreWithCallback($this->freezer->freeze($object));
+			return;
+		}
+		else{
+			$this->doStore($this->freezer->freeze($object));
+			return $object->__phreezer_uuid;
+		}
+	}
+
+	/**
+	 * Fetches a frozen array from the object storage and thaws it.
+	 *
+	 * @param array $array
+	 * @param array $objects
+	 */
+	protected function fetchArrayWithCallback(array &$array, array &$objects = array())
+	{
+		foreach ($array as &$value) {
+			if (is_array($value)) {
+				$this->fetchArrayWithCallback($value, $objects);
+			}
+
+			else if (is_string($value) &&
+					 strpos($value, '__phreezer_') === 0) {
+				$uuid = str_replace('__phreezer_', '', $value);
+
+				if (!$this->lazyLoad) {
+					$this->doFetchWithCallback($uuid, $objects);
+				} else {
+					$value = new LazyProxy($this, $uuid);
+				}
+			}
+		}
 	}
 
 	/**
@@ -122,24 +190,68 @@ abstract class Storage
 	 * @param  string $id The ID of the object that is to be fetched.
 	 * @return object
 	 */
-	public function fetch($id)
+	public function fetch($rootid, callable $cb = null)
 	{
 		// Bail out if a non-string was passed.
-		if (!is_string($id)) {
+		if (!is_string($rootid)) {
 			throw Util::getInvalidArgumentException(1, 'string');
 		}
 
+		if(!empty($cb)){
+			$objects = array();
+			$this->transport->setCallback($cb);
+			$cl = function(callable $cb, $count, $buffer) use ($rootid, &$objects) {
+
+
+				list($headers, $body) = explode("\r\n\r\n", $buffer, 2);
+
+				$object = json_decode($body, TRUE);
+				$this->revisions[$object['_id']] = $object['_rev'];
+
+				$uuid = $object['_id'];
+				if (strpos($headers, 'HTTP/1.0 200 OK') !== 0) {
+					throw new \RuntimeException(
+						sprintf('Object with id "%s" could not be fetched.', $uuid)
+					);
+				}
+
+				$objects[$uuid] = [
+					'className' => $object['class'],
+					'state' => $object['state']
+				];
+
+				if($uuid === $rootid){
+					$this->fetchArrayWithCallback($object['state'], $objects);
+				}
+				else if(!$this->lazyLoad){
+					$this->fetchArrayWithCallback($object['state'], $objects);
+				}
+
+				if($this->transport->isDone()){
+					$frozenObject = ['root'=>$rootid, 'objects'=>$objects];
+					$object = $this->freezer->thaw($frozenObject);
+					$cb($object);
+				}
+			};
+			$this->transport->setProcessor($cl->bindTo($this));
+
+			$this->doFetchWithCallback($rootid);
+			return;
+		}
+
+
+
 		// Try to retrieve object from the object cache.
-		$object = Cache::get($id);
+		$object = Cache::get($rootid);
 
 		if (!$object) {
 			// Retrieve object from the object storage.
-			$frozenObject = $this->doFetch($id);
-			$this->fetchArray($frozenObject['objects'][$id]['state']);
+			$frozenObject = $this->doFetch($rootid);
+			$this->fetchArray($frozenObject['objects'][$rootid]['state']);
 			$object = $this->freezer->thaw($frozenObject);
 
 			// Put object into the object cache.
-			Cache::put($id, $object);
+			Cache::put($rootid, $object);
 		}
 		Phixd::emit('phreezer.fetch.after', [$object]);
 		return $object;
