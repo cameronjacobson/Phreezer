@@ -154,6 +154,7 @@ abstract class Storage
 		}
 		else{
 			$this->doStore($this->freezer->freeze($object));
+			$this->transport->flush();
 			return $object->__phreezer_uuid;
 		}
 	}

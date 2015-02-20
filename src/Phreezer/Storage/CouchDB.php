@@ -228,7 +228,6 @@ class CouchDB extends Storage
 				'/' . $this->database . '/_bulk_docs',
 				json_encode($payload)
 			);
-
 			if ((strpos($response['headers'], 'HTTP/1.0 201 Created') !== 0)
 				&& (strpos($response['headers'], 'HTTP/1.0 200 OK') !== 0)) {
 				// @codeCoverageIgnoreStart
