@@ -195,7 +195,7 @@ class CouchDB extends Storage
 	protected function doStore(array $frozenObject)
 	{
 		$payload = ['docs' => []];
-var_dump($frozenObject);
+
 		foreach ($frozenObject['objects'] as $id => $object) {
 			$revision = NULL;
 
@@ -228,7 +228,7 @@ var_dump($frozenObject);
 				'/' . $this->database . '/_bulk_docs',
 				json_encode($payload)
 			);
-var_dump($response);
+
 			if ((strpos($response['headers'], 'HTTP/1.0 201 Created') !== 0)
 				&& (strpos($response['headers'], 'HTTP/1.0 200 OK') !== 0)) {
 				// @codeCoverageIgnoreStart
