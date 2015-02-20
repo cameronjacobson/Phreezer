@@ -18,7 +18,7 @@ $freezer = new Phreezer([
 ]);
 
 $couch = new CouchDB([
-	'database'  => 'phreezer_test',
+	'database'  => 'phreezer_tests',
 	'user'      => '{{USERNAME}}',
 	'pass'      => '{{PASSWORD}}',
 	'host'      => 'localhost',
@@ -38,6 +38,6 @@ var_dump($couch);
  */
 
 $couch = new CouchDB([
-	'database'  => 'phreezer_test'
+	'database'  => 'phreezer_tests'
 ]);
 var_dump($couch);

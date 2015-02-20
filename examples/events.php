@@ -17,7 +17,7 @@ $useAutoload = true;
 $start = microtime(true);
 
 $couch = new CouchDB([
-	'database'  => 'phreezer_test',
+	'database'  => 'phreezer_tests',
 //	'user'      => '{{USERNAME}}',
 //	'pass'      => '{{PASSWORD}}'
 ]);

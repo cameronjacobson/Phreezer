@@ -14,7 +14,7 @@ $base = new EventBase();
 $dns_base = new EventDnsBase($base,true);
 
 $couch = new CouchDB([
-	'database'  => 'phreezer_test',
+	'database'  => 'phreezer_tests',
 	'host'      => 'couchdb',
 	'base'      => $base,
 	'dns_base'  => $dns_base
