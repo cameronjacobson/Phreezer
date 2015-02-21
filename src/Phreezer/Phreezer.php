@@ -121,13 +121,17 @@ class Phreezer
 				'state'     => []
 			];
 
+			if(!empty($object->__phreezer_rev)){
+				$objects[$uuid]['_rev'] = $object->__phreezer_rev;
+			}
+
 			if(in_array('JsonSerializable', class_implements($object))){
 				$objects[$uuid]['state'] = json_decode(json_encode($object),true);
 			}
 			else {
 				// Iterate over the attributes of the object.
 				foreach (Util::readAttributes($object) as $k => $v) {
-					if ($k !== '__phreezer_uuid') {
+					if (!in_array($k,array('__phreezer_uuid','__phreezer_rev'))){
 
 						if (is_array($v)) {
 							$this->freezeArray($v, $objects);
@@ -193,6 +197,7 @@ class Phreezer
 
 		// Thaw object (if it has not been thawed before).
 		if (!isset($objects[$root])) {
+			$rev = $frozenObject['objects'][$root]['_rev'];
 			$className = $frozenObject['objects'][$root]['className'];
 			$state = $frozenObject['objects'][$root]['state'];
 			$reflector = new \ReflectionClass($className);
@@ -217,6 +222,7 @@ class Phreezer
 
 			// Store UUID.
 			$objects[$root]->__phreezer_uuid = $root;
+			$objects[$root]->__phreezer_rev = $rev;
 
 			// Store hash.
 			if (isset($state['__phreezer_hash'])) {
@@ -242,8 +248,7 @@ class Phreezer
 				$this->thawArray($value, $frozenObject, $objects);
 			}
 
-			else if (is_string($value) &&
-					 strpos($value, '__phreezer') === 0) {
+			else if (is_string($value) && (strpos($value, '__phreezer') === 0)) {
 				$aggregatedObjectId = str_replace(
 					'__phreezer_', '', $value
 				);

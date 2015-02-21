@@ -12,13 +12,14 @@ use Phreezer\Phreezer;
 use Phreezer\Storage\CouchDB;
 use Phreezer\Models\Container;
 
-$couch = new CouchDB([
-	'database'  => 'example'
+$client = new CouchDB([
+	'database'  => 'phreezer_tests',
+	'host'      => 'datashovel_couchdb'
 ]);
 
 $container = new Container();
 
-for($x=0;$x<10;$x++){
+for($x=0;$x<2;$x++){
 
 	$car = new Car();
 	$car->make = 'ford';
@@ -26,6 +27,6 @@ for($x=0;$x<10;$x++){
 
 	$container->objects[] = $car;
 }
-
+$couch = $client->getContext();
 $uuid = $couch->store($container);
 echo 'STORED CONTAINER: '.$uuid.PHP_EOL;

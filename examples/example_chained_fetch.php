@@ -29,9 +29,9 @@ $start = microtime(true);
 $base = new EventBase();
 $dns_base = new EventDnsBase($base,true);
 
-$couch = new CouchDB([
+$client = new CouchDB([
 	'database'  => 'phreezer_tests',
-	'host'      => 'couchdb',
+	'host'      => 'datashovel_couchdb',
 	'base'      => $base,
 	'dns_base'  => $dns_base
 //	'user'      => '{{USERNAME}}',
@@ -45,13 +45,15 @@ $driver->lastname = 'Doe';
 $car = new Car();
 $car->driver = $driver;
 
-$couch->store($car, function($uuid) use($couch, $base, $start) {
+$couch = $client->getContext();
+$couch->store($car, function($uuid) use($client, $base, $start) {
 
 	echo 'STORED RECORD: '.$uuid.PHP_EOL;
 	echo PHP_EOL;
 
 	echo 'FETCHING: '.$uuid.PHP_EOL;
-	$couch->fetch($uuid, function($car) use($couch, $uuid, $start, $base) {
+	$couch = $client->getContext();
+	$couch->fetch($uuid, function($car) use($client, $uuid, $start, $base) {
 
 		echo 'EXECUTING "drive" method'.PHP_EOL;
 		echo $car->drive();
@@ -62,6 +64,7 @@ $couch->store($car, function($uuid) use($couch, $base, $start) {
 		echo 'DELETING CAR: '.$uuid.PHP_EOL;
 		$car->_delete = true;
 
+		$couch = $client->getContext();
 		$couch->store($car, function($uuid) use($base, $start){
 			echo 'COMPLETED IN: '.(microtime(true)-$start).' SECONDS'.PHP_EOL;
 			echo PHP_EOL;

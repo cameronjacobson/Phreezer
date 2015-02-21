@@ -96,7 +96,6 @@ class View
 		return $this->buffers;
 	}
 
-	// TODO: ?? Swap out with SimpleHttpClient
 	public function query($view, $params = array('query'=>array(),'opts'=>array())) {
 		$this->prepParams($params);
 		$this->async($view, $params);

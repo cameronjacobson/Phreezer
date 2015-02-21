@@ -16,8 +16,9 @@ $useAutoload = true;
 
 $start = microtime(true);
 
-$couch = new CouchDB([
+$client = new CouchDB([
 	'database'  => 'phreezer_tests',
+	'host'      => 'datashovel_couchdb',
 //	'user'      => '{{USERNAME}}',
 //	'pass'      => '{{PASSWORD}}'
 ]);
@@ -37,22 +38,27 @@ $obj->b = 2;
 $obj->c = 3;
 
 echo 'STORING RECORD: ';
+$couch = $client->getContext();
 $id = $couch->store($obj);
 echo $id.PHP_EOL;
 echo PHP_EOL;
 
 echo 'FETCHING: '.$id.PHP_EOL;
+$couch = $client->getContext();
 $obj = $couch->fetch($id);
 echo 'UPDATING: '.$obj->a.' TO "'.$obj->blah().'"'.PHP_EOL;
 $obj->a = $obj->blah();
 echo 'STORING UPDATED VERSION OF: '.$id.PHP_EOL;
+$couch = $client->getContext();
 $couch->store($obj);
 echo PHP_EOL;
 
 echo 'FETCHING: '.$id.PHP_EOL;
+$couch = $client->getContext();
 $obj = $couch->fetch($id);
 echo 'DELETING: '.$id.PHP_EOL;
 $obj->_delete = true;
+$couch = $client->getContext();
 $couch->store($obj);
 echo PHP_EOL;
 
