@@ -44,11 +44,11 @@ class View
 				$result = json_decode($result, true);
 				foreach($result['rows'] as $k=>&$v){
 					$object = array(
-                        'objects'=>array($v['doc']['_id']=>array(
-                            'className'=>$v['doc']['class'],
-                            'state'=>$v['doc']['state']
-                        ))
-                    );
+						'objects'=>array($v['doc']['_id']=>array(
+							'className'=>$v['doc']['class'],
+							'state'=>$v['doc']['state']
+						))
+					);
 					$return[$v['id']] = $phreezer->thaw($object,$v['doc']['_id']);
 					$this->couch->setRevision($v['doc']['_id'], $v['doc']['_rev']);
 				}
@@ -61,14 +61,16 @@ class View
 
 	public function dispatch(callable $fn){
 		$dispatch_fn = function() use($fn) {
-            $buffers = $this->couch->transport->getBuffers('body');
-            foreach($buffers as $key=>$buffer){
-                $fn2 = $this->callbacks[$key];
-                $this->buffers[$key] = $fn2($buffer);
-                $this->cleanup($key);
-            }
-            $fn($this->buffers);
-        };
+			$buffers = $this->couch->transport->getBuffers('body');
+			foreach($buffers as $key=>$buffer){
+				if(!empty($this->callbacks[$key])){
+					$fn2 = $this->callbacks[$key];
+					$this->buffers[$key] = $fn2($buffer);
+					$this->cleanup($key);
+				}
+			}
+			$fn($this->buffers);
+		};
 		$dispatch_fn->bindTo($this);
 		$this->couch->transport->setCallback($dispatch_fn);
 		$this->couch->transport->dispatch();
