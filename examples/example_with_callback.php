@@ -13,7 +13,7 @@ $start = microtime(true);
 $base = new EventBase();
 $dns_base = new EventDnsBase($base,true);
 
-$couch = new CouchDB([
+$client = new CouchDB([
 	'database'  => 'phreezer_tests',
 	'host'      => 'couchdb',
 	'base'      => $base,
@@ -28,6 +28,7 @@ $object->a = 3;
 $object->b = 2;
 $object->c = 1;
 
+$couch = $client->getContext();
 $couch->store($object, function($uuid) use($couch, $base, $start) {
 
 	echo 'STORED RECORD: '.$uuid.PHP_EOL;

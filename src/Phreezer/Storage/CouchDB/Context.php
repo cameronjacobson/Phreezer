@@ -11,9 +11,10 @@ class Context
 
 	private $config;
 	public $context;
+	private $lastResults;
 
-	public function __construct(array $config, $context){
-		$this->context = $context;
+	public function __construct(array $config, $context = null){
+		$this->context = empty($context) ? new \SimpleHttpClient\Context($config) : $context;
 		$this->config = $config;
 	}
 
@@ -29,10 +30,7 @@ class Context
 		foreach ($frozenObject['objects'] as $id => $object) {
 			$revision = NULL;
 
-			if (isset($this->revisions[$id])) {
-				$revision = $this->revisions[$id];
-			}
-			else if($object['_rev']){
+			if(!empty($object['_rev'])){
 				$revision = $object['_rev'];
 			}
 
@@ -73,10 +71,7 @@ class Context
 		foreach ($frozenObject['objects'] as $id => $object) {
 			$revision = NULL;
 
-			if (isset($this->revisions[$id])) {
-				$revision = $this->revisions[$id];
-			}
-			else if(!empty($object['_rev'])){
+			if(!empty($object['_rev'])){
 				$revision = $object['_rev'];
 			}
 
@@ -106,6 +101,12 @@ class Context
 				json_encode($payload)
 			);
 
+			$this->setLastResults($response);
+
+			if($this->getDebug()){
+				$this->E($response);
+			}
+
 			if ((strpos($response['headers'], 'HTTP/1.0 201 Created') !== 0)
 				&& (strpos($response['headers'], 'HTTP/1.0 200 OK') !== 0)) {
 				// @codeCoverageIgnoreStart
@@ -114,22 +115,7 @@ class Context
 			}
 
 			$data = json_decode($response['body'], TRUE);
-			foreach ($data as $state) {
-				if (isset($state['error'])) {
-					// @codeCoverageIgnoreStart
-					throw new \RuntimeException(
-						sprintf(
-							'Could not save object "%s": %s - %s',
-							$state['id'],
-							$state['error'],
-							$state['reason']
-						)
-					);
-					// @codeCoverageIgnoreEnd
-				} else {
-					$this->revisions[$state['id']] = $state['rev'];
-				}
-			}
+
 		}
 	}
 
@@ -172,6 +158,10 @@ class Context
 				'GET', '/' . $this->getDatabase() . '/' . urlencode($id)
 			);
 
+			if($this->getDebug()){
+				$this->E($response);
+			}
+
 			if (strpos($response['headers'], 'HTTP/1.0 200 OK') !== 0) {
 				throw new \RuntimeException(
 					sprintf('Object with id "%s" could not be fetched.', $id)
@@ -179,7 +169,6 @@ class Context
 			}
 
 			$object = json_decode($response['body'], TRUE);
-			$this->revisions[$object['_id']] = $object['_rev'];
 
 			$objects[$id] = [
 				'_rev' => $object['_rev'],
@@ -214,9 +203,16 @@ class Context
 	{
 		switch(strtolower($method)){
 			case 'get':
+				if($this->getDebug()){
+					$this->E($url);
+				}
 				$this->context->get($url);
 				break;
 			case 'post':
+				if($this->getDebug()){
+					$this->E($url);
+					$this->E($payload);
+				}
 				$this->context->post($url, $payload);
 				break;
 		}
@@ -293,6 +289,10 @@ class Context
 			return;
 		}
 
+		if($this->getBase()->gotExit()){
+			$this->getBase()->reInit();
+			$this->context = new \SimpleHttpClient\Context($this->config);
+		}
 		// Try to retrieve object from the object cache.
 		$object = Cache::get($rootid);
 
@@ -341,10 +341,13 @@ class Context
 		$this->setCallback($cb);
 		$cl = function(callable $cb, $count, $buffer) use ($rootid, &$objects) {
 
+			if($this->getDebug()){
+				$this->E($buffer);
+			}
+
 			list($headers, $body) = explode("\r\n\r\n", $buffer, 2);
 
 			$object = json_decode($body, TRUE);
-			$this->revisions[$object['_id']] = $object['_rev'];
 
 			$uuid = $object['_id'];
 			if (strpos($headers, 'HTTP/1.0 200 OK') !== 0) {
@@ -383,6 +386,12 @@ class Context
 
 		$this->setProcessor(function(callable $cb,$key,$buffer) use ($object) {
 
+			if($this->getDebug()){
+				$this->E($buffer);
+			}
+
+			$this->setLastResults($buffer);
+
 			list($headers,$body) = explode("\r\n\r\n",$buffer,2);
 
 			if ((strpos($headers, 'HTTP/1.0 201 Created') !== 0)
@@ -394,23 +403,6 @@ class Context
 
 			$data = json_decode($body, TRUE);
 
-			foreach ($data as $state) {
-				if (isset($state['error'])) {
-					// @codeCoverageIgnoreStart
-					throw new \RuntimeException(
-						sprintf(
-							'Could not save object "%s": %s - %s',
-							$state['id'],
-							$state['error'],
-							$state['reason']
-						)
-					);
-					// @codeCoverageIgnoreEnd
-				} else {
-					$this->revisions[$state['id']] = $state['rev'];
-				}
-			}
-
 			if($this->context->isDone()){
 				$cb($object->__phreezer_uuid);
 			}
@@ -419,9 +411,22 @@ class Context
 		$this->doStoreWithCallback($this->getFreezer()->freeze($object));
 	}
 
-	public function setRevision($uuid, $rev){
-		$this->revisions[$uuid] = $rev;
+	public function getLastResults(){
+		if(!empty($this->lastResults['headers'])){
+			return array(
+				'headers'=>$this->context->parseHeaders($this->lastResults['headers']),
+				'body' => json_decode($this->lastResults['body'],true)
+			);
+		}
+		return $this->lastResults;
+	}
+
+	public function setLastResults($results){
+		$this->lastResults = $results;
 	}
 
 
+	private function E($value){
+		error_log(var_export($value,true));
+	}
 }

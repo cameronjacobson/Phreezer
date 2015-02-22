@@ -107,7 +107,6 @@ class CouchDB
 		$this->revisions[$uuid] = $rev;
 	}
 
-
 	public function getId(){
 		return $this->freezer->getId();
 	}

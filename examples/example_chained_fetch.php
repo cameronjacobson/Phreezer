@@ -46,14 +46,13 @@ $car = new Car();
 $car->driver = $driver;
 
 $couch = $client->getContext();
-$couch->store($car, function($uuid) use($client, $base, $start) {
+$couch->store($car, function($uuid) use($couch, $base, $start) {
 
 	echo 'STORED RECORD: '.$uuid.PHP_EOL;
 	echo PHP_EOL;
 
 	echo 'FETCHING: '.$uuid.PHP_EOL;
-	$couch = $client->getContext();
-	$couch->fetch($uuid, function($car) use($client, $uuid, $start, $base) {
+	$couch->fetch($uuid, function($car) use($couch, $uuid, $start, $base) {
 
 		echo 'EXECUTING "drive" method'.PHP_EOL;
 		echo $car->drive();
@@ -64,7 +63,6 @@ $couch->store($car, function($uuid) use($client, $base, $start) {
 		echo 'DELETING CAR: '.$uuid.PHP_EOL;
 		$car->_delete = true;
 
-		$couch = $client->getContext();
 		$couch->store($car, function($uuid) use($base, $start){
 			echo 'COMPLETED IN: '.(microtime(true)-$start).' SECONDS'.PHP_EOL;
 			echo PHP_EOL;
