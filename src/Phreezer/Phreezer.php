@@ -197,7 +197,9 @@ class Phreezer
 
 		// Thaw object (if it has not been thawed before).
 		if (!isset($objects[$root])) {
-			$rev = $frozenObject['objects'][$root]['_rev'];
+			if(!empty($frozenObject['objects'][$root]['_rev'])){
+				$rev = $frozenObject['objects'][$root]['_rev'];
+			}
 			$className = $frozenObject['objects'][$root]['className'];
 			$state = $frozenObject['objects'][$root]['state'];
 			$reflector = new \ReflectionClass($className);
@@ -222,7 +224,10 @@ class Phreezer
 
 			// Store UUID.
 			$objects[$root]->__phreezer_uuid = $root;
-			$objects[$root]->__phreezer_rev = $rev;
+
+			if(!empty($rev)){
+				$objects[$root]->__phreezer_rev = $rev;
+			}
 
 			// Store hash.
 			if (isset($state['__phreezer_hash'])) {

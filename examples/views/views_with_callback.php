@@ -17,9 +17,9 @@ $start = microtime(true);
 $base = new EventBase();
 $dns_base = new EventDnsBase($base,true);
 
-$couch = new CouchDB([
+$client = new CouchDB([
 	'database'  => 'phreezer_tests',
-	'host'      => 'couchdb',
+	'host'      => 'datashovel_couchdb',
 	'base'      => $base,
 	'dns_base'  => $dns_base
 //	'user'      => '{{USERNAME}}',
@@ -28,15 +28,26 @@ $couch = new CouchDB([
 
 $view = 'testview';
 
-$couch->_view->async($view, array(
-	'query'=>array('key'=>json_encode('john'),'include_docs'=>'true'),
+$couch = $client->getContext();
+
+$couch->getViewService()->async($view, array(
+	'query'=>array('keys'=>json_encode(array('jane','john')),'include_docs'=>'true'),
 	'opts'=>array(
 		'format'=>'array',
 		'thaw'=>true
 	)
 ));
 
-$couch->_view->dispatch(function($buffers) use($base, $start) {
+$couch->getViewService()->async($view, array(
+	'query'=>array('key'=>json_encode('jane'),'include_docs'=>'true'),
+	'opts'=>array(
+		'format'=>'array',
+		'thaw'=>true
+	)
+));
+
+
+$couch->getViewService()->dispatch(function($buffers) use($base, $start) {
 	var_dump($buffers);
 	$base->exit();
 	echo 'FINISHED IN: '.(microtime(true)-$start).' SECONDS'.PHP_EOL;

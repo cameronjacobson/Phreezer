@@ -17,9 +17,9 @@ $start = microtime(true);
 $base = new EventBase();
 $dns_base = new EventDnsBase($base,true);
 
-$couch = new CouchDB([
+$client = new CouchDB([
 	'database'  => 'phreezer_tests',
-	'host'      => 'couchdb',
+	'host'      => 'datashovel_couchdb',
 	'base'      => $base,
 	'dns_base'  => $dns_base
 //	'user'      => '{{USERNAME}}',
@@ -34,8 +34,11 @@ $obj2 = new ViewTestClass();
 $obj2->name = 'jane';
 $obj2->microtime = microtime(true);
 
+$couch = $client->getContext();
 $couch->store($obj);
-$couch->store($obj2);
+$couch->store($obj2, function($uuid) use($base) {
+	$base->exit();
+});
 
 $base->dispatch();
 

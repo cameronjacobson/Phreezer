@@ -21,15 +21,15 @@ class View
 
 	public function async($view, $params = array('query'=>array(), 'opts'=>array())){
 		$this->prepParams($params);
-		$url = '/'.$this->couch->database.'/_design/'.$this->couch->database.'/_view/'.$view;
+		$url = '/'.$this->couch->getDatabase().'/_design/'.$this->couch->getDatabase().'/_view/'.$view;
 		if(!empty($params['opts']['thaw'])){
 			$params['query']['include_docs'] = 'true';
 		}
 		$qs = empty($params['query']) ? '' : '?'.http_build_query($params['query']);
 
-		$this->couch->transport->get($url.$qs);
+		$this->couch->context->get($url.$qs);
 
-		$this->callbacks[$this->couch->transport->getCount()] = function($result) use ($params) {
+		$this->callbacks[$this->couch->context->getCount()] = function($result) use ($params) {
 			// whitelist meta-data for inclusion in result
 			if(@$params['opts']['filter']){
 				$filtered = $this->filter($params['opts']['filter'], json_decode($result,true), $params['opts']);
@@ -56,12 +56,12 @@ class View
 			}
 			return @$params['opts']['json'] ? $result : json_decode($result, true);
 		};
-		$this->callbacks[$this->couch->transport->getCount()]->bindTo($this);
+		$this->callbacks[$this->couch->context->getCount()]->bindTo($this);
 	}
 
 	public function dispatch(callable $fn){
 		$dispatch_fn = function() use($fn) {
-			$buffers = $this->couch->transport->getBuffers('body');
+			$buffers = $this->couch->context->getBuffers('body');
 			foreach($buffers as $key=>$buffer){
 				if(!empty($this->callbacks[$key])){
 					$fn2 = $this->callbacks[$key];
@@ -72,24 +72,18 @@ class View
 			$fn($this->buffers);
 		};
 		$dispatch_fn->bindTo($this);
-		$this->couch->transport->setCallback($dispatch_fn);
-		$this->couch->transport->dispatch();
+		$this->couch->context->setCallback($dispatch_fn);
+		$this->couch->context->dispatch();
 	}
 
 	public function fetch(){
-		$this->couch->transport->fetch();
-		$buffers = $this->couch->transport->getBuffers('body');
+		$this->couch->context->fetch();
+		$buffers = $this->couch->context->getBuffers('body');
 		foreach($buffers as $key=>$buffer){
 			$fn = $this->callbacks[$key];
 			$this->buffers[$key] = $fn($buffer);
 			$this->cleanup($key);
 		}
-	}
-
-	public function flush(){
-		$this->couch->transport->flush();
-		$this->callbacks = array();
-		$this->buffers = array();
 	}
 
 	public function getBuffers(){
@@ -102,7 +96,7 @@ class View
 		$this->fetch();//$this->couch->transport->fetch();
 		$this->cleanup(1);
 		$return = $this->buffers[1];
-		$this->flush();
+		//$this->flush();
 		return $return;
 	}
 

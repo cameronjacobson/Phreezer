@@ -10,7 +10,7 @@ class Context
 	use \Phreezer\Storage\CouchDB\Config;
 
 	private $config;
-	private $context;
+	public $context;
 
 	public function __construct(array $config, $context){
 		$this->context = $context;
@@ -23,7 +23,7 @@ class Context
 	 * @param array $frozenObject
 	 */
 	protected function doStoreWithCallback(array $frozenObject)
-	{   
+	{
 		$payload = ['docs' => []];
 
 		foreach ($frozenObject['objects'] as $id => $object) {
@@ -37,8 +37,8 @@ class Context
 			}
 
 			$data = [
-				'_id'   => $id,
-				'_rev'  => $revision,
+				'_id'	=> $id,
+				'_rev'	=> $revision,
 				'class' => $object['className'],
 				'state' => $object['state']
 			];
@@ -81,8 +81,8 @@ class Context
 			}
 
 			$data = [
-				'_id'   => $id,
-				'_rev'  => $revision,
+				'_id'	=> $id,
+				'_rev'	=> $revision,
 				'class' => $object['className'],
 				'state' => $object['state']
 			];
@@ -409,7 +409,7 @@ class Context
 				} else {
 					$this->revisions[$state['id']] = $state['rev'];
 				}
-			}   
+			}
 
 			if($this->context->isDone()){
 				$cb($object->__phreezer_uuid);
@@ -418,5 +418,10 @@ class Context
 
 		$this->doStoreWithCallback($this->getFreezer()->freeze($object));
 	}
+
+	public function setRevision($uuid, $rev){
+		$this->revisions[$uuid] = $rev;
+	}
+
 
 }
