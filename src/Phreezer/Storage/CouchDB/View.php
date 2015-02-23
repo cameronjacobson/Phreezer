@@ -64,7 +64,7 @@ class View
 				if(!empty($this->callbacks[$key])){
 					$fn2 = $this->callbacks[$key];
 					$this->buffers[$key] = $fn2($buffer);
-					$this->cleanup();
+					$this->cleanup($key);
 				}
 			}
 			$fn($this->buffers);
@@ -81,7 +81,7 @@ class View
 			if(!empty($this->callbacks[$key])){
 				$fn = $this->callbacks[$key];
 				$this->buffers[$key] = $fn($buffer);
-				$this->cleanup();
+				$this->cleanup($key);
 			}
 		}
 	}
@@ -103,8 +103,13 @@ class View
 		return $return;
 	}
 
-	private function cleanup(){
-		$this->callbacks = array();
+	private function cleanup($key = null){
+		if(empty($key)){
+			$this->callbacks = array();
+		}
+		else{
+			unset($this->callbacks[$key]);
+		}
 	}
 
 	private function filter($filtername, $data, $opts){

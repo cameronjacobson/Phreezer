@@ -30,6 +30,7 @@ $view = 'testview';
 
 $couch = $client->getContext();
 
+
 $couch->getViewService()->async($view, array(
 	'query'=>array('keys'=>json_encode(array('jane','john')),'include_docs'=>'true'),
 	'opts'=>array(
@@ -57,7 +58,7 @@ $base->dispatch();
 
 class ViewTestClass
 {
-        public $name;
-        public $microtime;
+	public $name;
+	public $microtime;
 }
 

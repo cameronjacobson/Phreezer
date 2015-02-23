@@ -302,7 +302,7 @@ class Context
 			return;
 		}
 
-		if($this->getBase()->gotExit()){
+		if($this->getBase()->gotStop()){
 			$this->getBase()->reInit();
 			$this->context = new \SimpleHttpClient\Context($this->config);
 		}
@@ -342,7 +342,7 @@ class Context
 			return;
 		}
 		else{
-			if($this->getBase()->gotExit()){
+			if($this->getBase()->gotStop()){
 				$this->getBase()->reInit();
 				$this->context = new \SimpleHttpClient\Context($this->config);
 			}
