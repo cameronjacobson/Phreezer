@@ -12,6 +12,7 @@ class Context
 	private $config;
 	public $context;
 	private $lastResults;
+	private static $revisions;
 
 	public function __construct(array $config, $context = null){
 		$this->context = empty($context) ? new \SimpleHttpClient\Context($config) : $context;
@@ -30,7 +31,10 @@ class Context
 		foreach ($frozenObject['objects'] as $id => $object) {
 			$revision = NULL;
 
-			if(!empty($object['_rev'])){
+			if(isset(self::$revisions[$id])){
+				$revision = self::$revisions[$id];
+			}
+			else if(!empty($object['_rev'])){
 				$revision = $object['_rev'];
 			}
 
@@ -71,7 +75,10 @@ class Context
 		foreach ($frozenObject['objects'] as $id => $object) {
 			$revision = NULL;
 
-			if(!empty($object['_rev'])){
+			if(isset(self::$revisions[$id])){
+				$revision = self::$revisions[$id];
+			}
+			else if(!empty($object['_rev'])){
 				$revision = $object['_rev'];
 			}
 
@@ -115,6 +122,12 @@ class Context
 			}
 
 			$data = json_decode($response['body'], TRUE);
+
+			foreach($data as $v){
+				if(isset($v['ok']) && isset($v['id']) && isset($v['rev'])){
+					self::$revisions[$v['id']] = $v['rev'];
+				}
+			}
 
 		}
 	}
@@ -329,6 +342,10 @@ class Context
 			return;
 		}
 		else{
+			if($this->getBase()->gotExit()){
+				$this->getBase()->reInit();
+				$this->context = new \SimpleHttpClient\Context($this->config);
+			}
 			$this->doStore($this->getFreezer()->freeze($object));
 			return $object->__phreezer_uuid;
 		}
@@ -402,6 +419,12 @@ class Context
 			}
 
 			$data = json_decode($body, TRUE);
+
+			foreach($data as $v){
+				if(isset($v['ok']) && isset($v['id']) && isset($v['rev'])){
+					self::$revisions[$v['id']] = $v['rev'];
+				}
+			}
 
 			if($this->context->isDone()){
 				$cb($object->__phreezer_uuid);

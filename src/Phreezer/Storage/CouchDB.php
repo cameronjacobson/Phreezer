@@ -103,10 +103,6 @@ class CouchDB
 		return new Context($this->config, $this->transport->getContext());
 	}
 
-	public function setRevision($uuid, $rev){
-		$this->revisions[$uuid] = $rev;
-	}
-
 	public function getId(){
 		return $this->freezer->getId();
 	}

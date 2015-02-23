@@ -28,7 +28,6 @@ class View
 		$qs = empty($params['query']) ? '' : '?'.http_build_query($params['query']);
 
 		$this->couch->context->get($url.$qs);
-
 		$this->callbacks[$this->couch->context->getCount()] = function($result) use ($params) {
 			// whitelist meta-data for inclusion in result
 			if(@$params['opts']['filter']){
@@ -50,7 +49,6 @@ class View
 						))
 					);
 					$return[$v['id']] = $phreezer->thaw($object,$v['doc']['_id']);
-					$this->couch->setRevision($v['doc']['_id'], $v['doc']['_rev']);
 				}
 				return $return;
 			}
@@ -66,7 +64,7 @@ class View
 				if(!empty($this->callbacks[$key])){
 					$fn2 = $this->callbacks[$key];
 					$this->buffers[$key] = $fn2($buffer);
-					$this->cleanup($key);
+					$this->cleanup();
 				}
 			}
 			$fn($this->buffers);
@@ -80,9 +78,11 @@ class View
 		$this->couch->context->fetch();
 		$buffers = $this->couch->context->getBuffers('body');
 		foreach($buffers as $key=>$buffer){
-			$fn = $this->callbacks[$key];
-			$this->buffers[$key] = $fn($buffer);
-			$this->cleanup($key);
+			if(!empty($this->callbacks[$key])){
+				$fn = $this->callbacks[$key];
+				$this->buffers[$key] = $fn($buffer);
+				$this->cleanup();
+			}
 		}
 	}
 
@@ -94,14 +94,17 @@ class View
 		$this->prepParams($params);
 		$this->async($view, $params);
 		$this->fetch();//$this->couch->transport->fetch();
-		$this->cleanup(1);
-		$return = $this->buffers[1];
+		$this->cleanup();
+		$return = array();
+		while($buffer = array_shift($this->buffers)){
+			$return[] = $buffer;
+		}
 		//$this->flush();
 		return $return;
 	}
 
-	private function cleanup($index){
-		unset($this->callbacks[$index]);
+	private function cleanup(){
+		$this->callbacks = array();
 	}
 
 	private function filter($filtername, $data, $opts){
