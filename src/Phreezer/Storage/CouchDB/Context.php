@@ -41,7 +41,7 @@ class Context
 			$data = [
 				'_id'	=> $id,
 				'_rev'	=> $revision,
-				'class' => $object['className'],
+				'class' => $object['class'],
 				'state' => $object['state']
 			];
 
@@ -85,7 +85,7 @@ class Context
 			$data = [
 				'_id'	=> $id,
 				'_rev'	=> $revision,
-				'class' => $object['className'],
+				'class' => $object['class'],
 				'state' => $object['state']
 			];
 
@@ -185,7 +185,7 @@ class Context
 
 			$objects[$id] = [
 				'_rev' => $object['_rev'],
-				'className' => $object['class'],
+				'class' => $object['class'],
 				'state' => $object['state']
 			];
 
@@ -375,7 +375,7 @@ class Context
 
 			$objects[$uuid] = [
 				'_rev' => $object['_rev'],
-				'className' => $object['class'],
+				'class' => $object['class'],
 				'state' => $object['state']
 			];
 

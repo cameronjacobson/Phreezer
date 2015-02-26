@@ -44,7 +44,7 @@ class View
 				foreach($result['rows'] as $k=>&$v){
 					$object = array(
 						'objects'=>array($v['doc']['_id']=>array(
-							'className'=>$v['doc']['class'],
+							'class'=>$v['doc']['class'],
 							'state'=>$v['doc']['state']
 						))
 					);

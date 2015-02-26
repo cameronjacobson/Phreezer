@@ -117,7 +117,7 @@ class Phreezer
 
 		if (!isset($objects[$uuid])) {
 			$objects[$uuid] = [
-				'className' => get_class($object),
+				'class' => get_class($object),
 				'state'     => []
 			];
 
@@ -180,10 +180,10 @@ class Phreezer
 	{
 		// Bail out if one of the required classes cannot be found.
 		foreach ($frozenObject['objects'] as $object) {
-			if (!class_exists($object['className'], $this->useAutoload)) {
+			if (!class_exists($object['class'], $this->useAutoload)) {
 				throw new \RuntimeException(
 					sprintf(
-						'Class "%s" could not be found.', $object['className']
+						'Class "%s" could not be found.', $object['class']
 					)
 				);
 			}
@@ -200,9 +200,9 @@ class Phreezer
 			if(!empty($frozenObject['objects'][$root]['_rev'])){
 				$rev = $frozenObject['objects'][$root]['_rev'];
 			}
-			$className = $frozenObject['objects'][$root]['className'];
+			$class = $frozenObject['objects'][$root]['class'];
 			$state = $frozenObject['objects'][$root]['state'];
-			$reflector = new \ReflectionClass($className);
+			$reflector = new \ReflectionClass($class);
 			$objects[$root] = $reflector->newInstanceWithoutConstructor();
 
 			// Handle aggregated objects.
