@@ -117,7 +117,7 @@ class Context
 			if ((strpos($response['headers'], 'HTTP/1.0 201 Created') !== 0)
 				&& (strpos($response['headers'], 'HTTP/1.0 200 OK') !== 0)) {
 				// @codeCoverageIgnoreStart
-				throw new \RuntimeException('Could not save objects.');
+				throw new \Exception('Could not save objects.');
 				// @codeCoverageIgnoreEnd
 			}
 
@@ -139,7 +139,7 @@ class Context
 	 * @param  array  $objects Only used internally.
 	 * @return object
 	 * @throws InvalidArgumentException
-	 * @throws RuntimeException
+	 * @throws Exception
 	 */
 	protected function doFetchWithCallback($id, array &$objects = [])
 	{
@@ -159,7 +159,7 @@ class Context
 	 * @param  array  $objects Only used internally.
 	 * @return object
 	 * @throws InvalidArgumentException
-	 * @throws RuntimeException
+	 * @throws Exception
 	 */
 	protected function doFetch($id, array &$objects = [])
 	{
@@ -176,7 +176,7 @@ class Context
 			}
 
 			if (strpos($response['headers'], 'HTTP/1.0 200 OK') !== 0) {
-				throw new \RuntimeException(
+				throw new \Exception(
 					sprintf('Object with id "%s" could not be fetched.', $id)
 				);
 			}
@@ -210,7 +210,7 @@ class Context
 	 * @param  string $url
 	 * @param  string $payload
 	 * @return array
-	 * @throws RuntimeException
+	 * @throws Exception
 	 */
 	public function send($method, $url, $payload = NULL)
 	{
@@ -368,9 +368,8 @@ class Context
 
 			$uuid = $object['_id'];
 			if (strpos($headers, 'HTTP/1.0 200 OK') !== 0) {
-				throw new \RuntimeException(
-					sprintf('Object with id "%s" could not be fetched.', $uuid)
-				);
+				$cb(null);
+				return;
 			}
 
 			$objects[$uuid] = [
@@ -414,7 +413,8 @@ class Context
 			if ((strpos($headers, 'HTTP/1.0 201 Created') !== 0)
 				&& (strpos($headers, 'HTTP/1.0 200 OK') !== 0)) {
 				// @codeCoverageIgnoreStart
-				throw new \RuntimeException('Could not save objects.');
+				$cb(null);
+				return;
 				// @codeCoverageIgnoreEnd
 			}
 
