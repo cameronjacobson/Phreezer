@@ -372,6 +372,11 @@ class Context
 				return;
 			}
 
+			if(empty($object['class']) || empty($object['state'])){
+				$cb(null);
+				return;
+			}
+
 			$objects[$uuid] = [
 				'_rev' => $object['_rev'],
 				'class' => $object['class'],
