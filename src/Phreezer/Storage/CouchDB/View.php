@@ -100,7 +100,7 @@ class View
 			$return[] = $buffer;
 		}
 		//$this->flush();
-		return $return;
+		return count($return) === 1 ? $return[0] : $return;
 	}
 
 	private function cleanup($key = null){
